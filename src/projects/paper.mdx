@@ -1,0 +1,60 @@
+---
+title: "paper: A terminal wallpaper manager in Zig"
+published: 2026-10-29
+description: paper is a terminal wallpaper manager in Zig that searches Wallhaven, Unsplash and Pexels, plays video wallpapers and runs on Linux, macOS and Windows.
+---
+
+paper is a fast, native wallpaper manager for the terminal. It searches wallpaper sites, previews thumbnails inline, plays a video as the desktop background, generates art with open AI models and rotates the wallpaper on a schedule. It all ships as one self-contained binary for Linux, macOS and Windows.
+
+It's written in Zig. HTTPS and JSON are handled in-process, so there's no `curl` or `jq` dependency, thumbnails download concurrently, and startup is instant.
+
+## Features
+
+- **Search** Wallhaven with no key, plus Unsplash and Pexels with optional keys.
+- **Results that fit the screen.** paper detects the resolution on Hyprland, X11, Windows and macOS and filters to wallpapers that fit.
+- **No extra tools needed.** A built-in numbered picker works out of the box. Add `fzf` and `chafa` for a fuzzy picker with inline thumbnail previews.
+- **Live video wallpapers** on Wayland, X11 and Windows.
+- **AI generation** from a prompt through open Hugging Face models, sized to the screen. The default model is `black-forest-labs/FLUX.1-schnell`.
+- **A library** of everything downloaded, stills and videos, in `~/Pictures/Wallpapers`.
+- **Auto-change** hourly, daily, weekly or on a custom schedule through a systemd user timer.
+- **Cross-platform apply**: Omarchy, swaybg and GNOME on Linux, System Events on macOS, PowerShell on Windows.
+
+## Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/broisnees/paper/master/install.sh | bash
+```
+
+This downloads the prebuilt binary into `~/.local/bin` and tries to install the optional `fzf` and `chafa` with the system package manager. Skip those with `PAPER_SKIP_DEPS=1`. On Windows, run it in Git Bash or WSL.
+
+To build from source (needs Zig 0.16+):
+
+```bash
+git clone https://github.com/broisnees/paper.git
+cd paper
+./install.sh          # builds an optimized binary and installs it
+```
+
+## Usage
+
+```bash
+paper mountains at night          # search, preview, pick, set
+paper random cyberpunk city       # grab a random match and set it now
+paper library                     # re-pick from your downloads (images + video)
+paper set ~/Pictures/foo.jpg      # set a local file
+paper generate a cozy cabin in snowy mountains, golden hour
+paper auto daily nature           # a new nature wallpaper every day
+```
+
+## Live video wallpaper
+
+`paper video` searches YouTube through `yt-dlp`, downloads only the video track so files stay small, and saves it next to the stills. `-s pexels` switches to stock footage, which needs a free Pexels key. Local files and URLs play with `paper live`.
+
+```bash
+paper video minecraft               # search, preview the thumbnails, pick, play
+paper live ~/Videos/loop.mp4        # play a local file
+paper live autostart on             # replay it at every login
+paper live off                      # stop; the last still wallpaper comes back
+```
+
+Playback uses `mpvpaper` on Wayland, `xwinwrap` with `mpv` on X11, and `mpv` inside the desktop's `WorkerW` window on Windows. macOS has no CLI-accessible desktop layer, so it gets a still frame. Without a backend, paper pulls one frame out with `ffmpeg`, sets it as a normal wallpaper and says what to install. Audio is muted unless `--sound` is passed, and `--random` plus the scheduler skip clips longer than 5 minutes.

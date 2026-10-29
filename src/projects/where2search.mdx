@@ -1,0 +1,39 @@
+---
+title: "where2search: Search AI tools and search engines at once"
+published: 2026-10-29
+description: Where2Search is a Chrome extension that adds a right-click menu for searching selected text on ChatGPT, Google, Reddit, GitHub, YouTube and other sites.
+---
+
+Where2Search is a Chrome extension that searches the text selected on a page, on whichever of twelve sites I pick, straight from the right-click menu.
+
+## How to use
+
+1. Select some text on a webpage.
+2. Right-click and choose **Where2Search** from the context menu.
+3. Pick the site to search from the sub-menu.
+
+## Supported sites
+
+- ChatGPT
+- Google
+- Reddit
+- GitHub
+- Grep App
+- Twitter
+- YouTube
+- LinkedIn
+- Wikipedia
+- Medium
+- Quora
+- Amazon
+
+## Build from source
+
+Clone the repository, then install the dependencies and build:
+
+```bash
+npm install
+npm run build
+```
+
+Load it in Chrome: open `chrome://extensions/`, turn on developer mode, click **Load unpacked** and select the `dist` folder.

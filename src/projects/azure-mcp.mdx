@@ -1,0 +1,49 @@
+---
+published: 2026-10-29
+description: azure-board-mcp is an MCP server for Azure DevOps that lets Claude, Cursor and VS Code work with work items, sprints, pull requests, repos and pipelines.
+---
+
+azure-board-mcp is an MCP server for Azure DevOps. It lets Claude, Cursor or any MCP-compatible AI work with tasks, sprints, bugs, pull requests, repositories and pipelines from the editor. On first use the AI asks which Azure DevOps project to work on and remembers it.
+
+## Getting started
+
+```bash
+# 1. Configure your editors (Claude Code, Cursor, VS Code, Claude Desktop)
+npx azure-board-mcp install
+
+# 2. Sign in once
+npx azure-board-mcp authenticate
+```
+
+Then restart the editor. `install` detects and configures Claude Code, Cursor, VS Code and Claude Desktop. To wire it by hand, Claude Code takes this in `~/.claude/settings.json`, and Cursor and Claude Desktop take the same block:
+
+```json
+{
+  "mcpServers": {
+    "azure": {
+      "command": "npx",
+      "args": ["-y", "azure-board-mcp@latest"]
+    }
+  }
+}
+```
+
+`npx azure-board-mcp skills` installs a Claude Code skill so Claude reaches for these tools whenever I ask about tasks, sprints, PRs or builds.
+
+## Authentication
+
+- **Browser sign-in** (the default) opens a Microsoft sign-in and lists the orgs to pick from. No Azure AD app setup: it uses a shared app registration built into the package.
+- **Personal Access Token** with `npx azure-board-mcp authenticate --pat`, for headless or CI setups and orgs that block third-party OAuth. The PAT needs Work Items (Read & Write), Build (Read) and Code (Read).
+- **Read-only** OAuth scopes with `--read-only`.
+- **A custom Azure AD app** with `--client-id` (plus `--tenant-id` for single-tenant apps), for orgs that block the shared one.
+- **Environment variables** `AZURE_ORG`, `AZURE_PROJECT`, `AZURE_PAT` and `AUTH_TOKEN` override stored credentials in CI or Docker.
+
+## Tools
+
+- **Work items**: list and filter by state, type or keyword, read every field (custom ones included) with all comments and linked PRs, create, update, delete, link parent and child items, manage comments, run WIQL queries, read change history and the priority-ranked backlog.
+- **Boards, sprints and teams**: current sprint dates and capacity, all sprints, Kanban columns with WIP limits, team members, valid area and iteration paths.
+- **Repositories and pull requests**: browse repos and files, list commits and branches with ahead/behind counts, open PRs with reviewers and linked work items, read and post inline comments, resolve threads, vote, manage reviewers, and complete or abandon a PR.
+- **Pipelines, builds and releases**: list pipelines and builds, trigger a run, find the failed stage, job or task, read the logs of failed steps, cancel a build, and list or create releases.
+- **Auth and project**: `auth_status` and `switch_project`.
+
+Work item, commit and PR lists are paginated, 15 per page by default and up to 50, and list views fetch only the fields they show, so they stay light on context.

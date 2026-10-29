@@ -1,0 +1,63 @@
+---
+title: "selfaction: Self-hosted GitHub Actions runners and cache"
+published: 2026-10-29
+description: selfaction runs GitHub Actions on your own machines, locally in Docker, as self-hosted runners or from webhooks, with a shared actions/cache server.
+---
+
+selfaction runs GitHub Actions on my own machines. It works with existing workflows and the actions on the Marketplace, and it runs on a laptop, a server or in Docker. It's one Go CLI with four jobs.
+
+## What it does
+
+- **`selfaction run`** runs a repo's `.github/workflows` locally in Docker on the nektos/act engine, with a persistent `actions/cache` backend and an artifact server.
+- **`selfaction agent`** turns a machine into a pool of GitHub self-hosted runners. It registers single-use (JIT) runners and runs the official `actions/runner`, so it's fully compatible.
+- **`selfaction server` and `selfaction worker`** run CI from `push` and `pull_request` webhooks without GitHub's runner service, and report back as commit statuses that link to a live log.
+- **`selfaction cache`** is a shared `actions/cache` server for every repo, with per-repo isolation, LRU and TTL eviction, and `ls`, `prune` and `gc` tools.
+
+## Install
+
+Requires Go 1.26+.
+
+```bash
+go install github.com/broisnees/selfaction@latest
+```
+
+## Run workflows locally
+
+```bash
+cd your-repo
+selfaction run --list              # what would run
+selfaction run pull_request -j test
+selfaction run -s NPM_TOKEN        # secret from your env; GITHUB_TOKEN comes from `gh auth token`
+```
+
+`ubuntu-*` jobs run in `catthehacker/ubuntu:act-*` images. On a Mac, `macos-*` and `self-hosted` jobs run directly on the host. `actions/cache` v4 to v6 works with no setup: archives go to `~/.selfaction/cache`, scoped by `owner/repo`, so the second run restores them.
+
+## Use a PC as a GitHub Actions runner
+
+```bash
+selfaction agent start --repo you/app --labels my-mac --slots 2
+```
+
+```yaml
+jobs:
+  build:
+    runs-on: [self-hosted, my-mac]
+```
+
+Each slot registers a just-in-time runner that takes at most one job, runs it, then wipes the workspace, diagnostics and credentials before starting over. Host-mode jobs get their own `HOME` per slot, runners GitHub reports offline (after the machine slept, say) are restarted, and everything is unregistered when the agent stops. `selfaction agent install` keeps it running under launchd on macOS or `systemd --user` on Linux, and `--mode docker` runs each job in a fresh `ghcr.io/actions/actions-runner` container. Organizations and GitHub Enterprise Server work too.
+
+<Callout title="Trust">Attach runners only to repositories you trust. On a public repo, target self-hosted runners from `push` to `main` or `workflow_dispatch`, never from `pull_request`, so a fork's code can't run on the machine.</Callout>
+
+## Run workflows from webhooks
+
+```bash
+export SELFACTION_WEBHOOK_SECRET=$(openssl rand -hex 32)
+selfaction server --external-url https://ci.example.com --workflows .selfaction/workflows
+selfaction worker --server https://ci.example.com --token <worker token> --slots 2
+```
+
+The server reads the workflows at the pushed commit and applies GitHub's `branches`, `tags`, `paths` and pull request `types` filters. Every push shows `selfaction/<workflow> (push)` on the commit, from Queued to Running to Passed. Only `push` and `pull_request` start jobs, and jobs get the server's `GITHUB_TOKEN` but no repository secrets. Pull requests from forks are skipped unless `--allow-forks` is set.
+
+## Roadmap
+
+GitHub App authentication with check runs, Gitea and Forgejo webhooks, a web UI, a Helm chart, Windows host mode and S3 storage for the cache are planned.

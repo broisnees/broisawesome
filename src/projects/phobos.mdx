@@ -1,0 +1,51 @@
+---
+title: "phobos: Claude Code skills and hooks that cut wasted tokens"
+published: 2026-10-29
+description: phobos is a set of Claude Code skills and hooks that cut wasted tokens with read and command guards, a context gauge and a session state handoff.
+---
+
+phobos is a set of skills and hooks for Claude Code that cut down on wasted tokens. The skills steer the model and the hooks enforce it. Nothing runs in the request path and nothing calls a model, so it doesn't slow anything down.
+
+## What it does
+
+- **Read guard.** Denies reads of `node_modules/`, `vendor/`, `.venv/` and other dependency folders, build output like `dist/` and `.next/`, lockfiles, minified files, source maps, binaries, `.git/` internals, and unbounded reads over 2 MB or 2000 lines. Images and PDFs always pass. A per-repo `.claude/phobos-guard-allow` file lets specific paths through.
+- **Command guard.** Denies Grep in content mode without a `head_limit`, recursive `ls` and `grep` and unbounded `git log` unless piped or redirected, and a command re-run after it already failed with nothing edited since. Each deny message says how to get around it.
+- **State handoff.** Writes `.claude/phobos-state.md` on edit turns and before every compaction, and injects it at session start. A new session, or the turn after `/compact` or `/clear`, re-orients from a small snapshot stamped with the git SHA instead of the transcript.
+- **Context gauge.** A status line with effort and context use, plus warnings at 80% and 92% of the context window by default. It warns; `/compact` and `/clear` stay manual.
+- **Activity ledger.** A running log of edited files and output tokens goes to `.claude/phobos-activity.log`, tailed into every new session.
+- **Tab spinner.** The terminal title animates with a braille spinner while Claude works and resets when the turn ends, so a background tab shows activity at a glance.
+- **Skills.** `phobos`, plus `phobos-code` and `phobos-plan` for coding and planning.
+- **Benchmark.** `benchmark.sh` reports real measured tokens and estimated cost per session; `savings.sh` gives a labelled estimate of what was saved.
+
+## Setup
+
+On Windows, run the install command from Git Bash. Restart Claude Code after, and check the install any time:
+
+```bash
+bash ~/.claude/skills/phobos/hooks/doctor.sh
+```
+
+`install.sh` adds to existing hooks and status lines rather than replacing them. Flags: `--skills-only`, `--settings-only`, `--no-guard`, `--no-cmd-guard`, `--no-statusline`, `--quiet`.
+
+phobos is also a Claude Code plugin marketplace:
+
+```text
+/plugin marketplace add broisnees/phobos
+/plugin install phobos@phobos
+```
+
+The plugin installs all three skills and wires every hook, but Claude Code doesn't let plugins set the main status line, so the context gauge needs `install.sh`.
+
+## Tuning
+
+Each guard turns off for one session with `PHOBOS_GUARD=off` or `PHOBOS_CMD_GUARD=off`. Limits and thresholds are environment variables too, such as `PHOBOS_MAX_READ_LINES`, `PHOBOS_WARN_PCT` and `PHOBOS_CTX_LIMIT`, and `PHOBOS_SPINNER=off` disables the spinner. To map tasks to a team's own tools and MCP servers, edit `skills/phobos/references/routing.md`.
+
+## Update and uninstall
+
+Run `/phobos-update` inside Claude Code, or `bash ~/src/phobos/update.sh`. To remove it:
+
+```bash
+bash ~/src/phobos/uninstall.sh
+```
+
+The uninstaller backs up `settings.json` first. CI runs the test suite on Linux, macOS and Windows (Git Bash). MIT licensed.

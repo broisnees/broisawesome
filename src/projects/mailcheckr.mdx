@@ -1,0 +1,86 @@
+---
+title: "mailcheckr: Email validation with typo, MX and SMTP checks"
+published: 2026-10-29
+description: mailcheckr is an email validation library for Bun and Node.js that checks syntax, typo domains, disposable providers, blocklists, MX records and SMTP.
+---
+
+mailcheckr is an email validation library for signup and contact forms, where a regex isn't enough. It rejects malformed addresses early, catches typo domains (`hotnail.com` for `hotmail.com`), blocks disposable providers and any domains I add to a blocklist, checks that the domain can actually receive mail through its MX records, and can optionally probe over SMTP whether the server accepts the mailbox. It runs in Bun and Node.js.
+
+It aims at practical validation, not full RFC-5321/5322 edge-case compliance.
+
+## Features
+
+- Syntax checks: exactly one `@`, plus general rules for the username and the domain.
+- Typo detection for popular domains.
+- Disposable domain filtering, extended with `extraDisposableDomains`, and my own blocklist through `blocklistDomains`.
+- Provider-specific username rules (`checkVendorRules`).
+- MX record validation over DNS, with a `level` option of `syntax`, `dns` or `deep`.
+- Every check has its own toggle: `checkTypo`, `checkDisposable`, `checkBlocklist`, `checkVendorRules`, `checkMx`.
+- Built to cut network bottlenecks: a result cache with a TTL, a popular-MX cache seeded with known MX entries to reduce cold DNS latency for common providers, DNS over HTTPS with retries, and a custom `mxResolver` hook. `dohProviderUrl` and `dnsServer` only accept trusted, allowlisted providers.
+- An optional SMTP probe that runs the handshake up to `RCPT TO` and stops before `DATA`, so no message body is ever sent. It has its own timeout, a cap on how many MX hosts to try, and a catch-all check. If the probe is unavailable or times out, the result stays valid when the MX check passes and `smtp.status` reads `unverifiable`.
+- Failed checks return a `reasonId` and a `message`, and the `INVALID_REASON_*` constants are exported for mapping reasons to my own error text.
+
+## Install
+
+```bash
+bun add mailcheckr
+```
+
+## Usage
+
+```ts
+import { checkEmail } from "mailcheckr";
+
+const result = await checkEmail("someone@gmail.com");
+
+if (result.valid) {
+  console.log("valid");
+} else {
+  console.log(result.reasonId, result.message);
+}
+```
+
+Turn individual checks off:
+
+```ts
+await checkEmail("someone@hotnail.com", {
+  checkTypo: false,
+  checkBlocklist: false,
+  checkVendorRules: false,
+  checkMx: true, // keep DNS MX verification
+});
+```
+
+Probe the mailbox over SMTP, kept fast with a short timeout and one MX host:
+
+```ts
+const result = await checkEmail("someone@gmail.com", {
+  smtpProbe: true,
+  smtpProbeTimeoutMs: 1500,
+  smtpProbeMaxMxHosts: 1,
+});
+
+console.log(result.valid, result.smtp?.status);
+```
+
+On Node.js, plug in the built-in resolver:
+
+```ts
+import { resolveMx } from "dns/promises";
+import { checkEmail } from "mailcheckr";
+
+async function nodeResolver(emailDomain: string): Promise<string[] | false> {
+  try {
+    const records = await resolveMx(emailDomain);
+    return records.map((rec) => rec.exchange);
+  } catch (error) {
+    const err = error as Error;
+    if (err.message.includes("ENOTFOUND")) return [];
+    return false;
+  }
+}
+
+const result = await checkEmail("someone@gmail.com", {
+  mxResolver: nodeResolver,
+});
+```

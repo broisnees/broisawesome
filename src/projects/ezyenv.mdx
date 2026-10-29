@@ -1,0 +1,70 @@
+---
+published: 2026-10-29
+description: ezyenv is a command-line tool that generates .env.example files from existing .env files, keeping keys and comments and blanking out the secret values.
+---
+
+ezyenv generates sample env files from existing `.env` files. It keeps every variable name and the file's structure but strips the values, so a team can push a template like `.env.example` to GitHub and share it without exposing real credentials.
+
+## Features
+
+- Generates `.env.example` from `.env` files with one command.
+- Creates an example file for each env file in the project, or for a single file with `ezyenv test.env`.
+- Preserves the structure and both single-line and multi-line comments while removing sensitive values.
+- Sets the suffix with `--sample`: `sample`, `example`, `eg` or `default`.
+- Removes the generated example files again with `ezyenv rm`.
+
+## Install
+
+Run it without installing, or add it globally:
+
+```bash
+# npm
+npx ezyenv
+
+# bun
+bunx ezyenv
+
+# yarn
+yarn global add ezyenv
+
+# pnpm
+pnpm add -g ezyenv
+```
+
+## Usage
+
+From the project directory:
+
+```bash
+ezyenv # creates `.example` files for each env
+
+ezyenv .env # specifies the file
+
+ezyenv rm # removes the example files
+
+ezyenv .env --sample sample # specifies the sample (sample|example|eg|default)
+```
+
+Given this `.env`:
+
+```dotenv
+DB_HOST=localhost
+DB_USER=admin
+DB_PASS=super_secret_password
+API_KEY=1234567890
+```
+
+ezyenv writes this `.env.example`:
+
+```dotenv
+DB_HOST=
+DB_USER=
+DB_PASS=
+API_KEY=
+```
+
+## Uninstall
+
+```bash
+npm uninstall -g ezyenv
+```

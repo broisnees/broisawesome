@@ -1,0 +1,42 @@
+---
+title: "skills: Claude skills that write in my voice"
+published: 2026-10-29
+description: "skills is my Claude skills collection: the me skill keeps docs and commits in my first-person voice, and write-as-bro strips em dashes and AI tells."
+---
+
+skills is my collection of Claude skills, one directory per skill, each self-contained with its own `SKILL.md`. There are two, and they stack: `me` makes the work mine, `write-as-bro` makes it sound like I wrote it.
+
+## The skills
+
+### me
+
+Default AI output has three habits I don't want in my own repo. It lectures me in tutorial voice, it talks about me in the third person, and it signs its own name to my work, either with a co-author trailer or by handing my own file back to me as a gift. `me` flips every artifact into my first-person voice: docs, READMEs, code comments, commit bodies, PRs, issues, changelogs, specs and reports.
+
+It stops on purpose in a few places. Commit subjects stay imperative, because git tooling expects that mood. It won't invent me: no made-up benchmarks, history, credentials or opinions, and no folding someone else's contribution into "I". Public API reference, end-user UI copy and templates others fill in keep their own register.
+
+### write-as-bro
+
+`write-as-bro` takes the AI sound out of my writing. It bans the em dash, the en dash, the horizontal bar, the unicode hyphen variants and the ellipsis character, while ASCII hyphens stay legal in compound words, flags and identifiers. It also bans a list of overused AI vocabulary and filler phrases, and it covers the rhythm grep can't catch: sentences that all run 15 to 25 words, lists that always have three items, a windup before every point, and a summary that repeats the section.
+
+It ships a grep-based checker that scans prose for the banned characters, words and phrases, skips fenced code blocks, and exits 1 while anything is left to fix:
+
+```bash
+bash ~/.claude/skills/write-as-bro/scripts/ai-tells.sh README.md docs/
+```
+
+## Install
+
+Clone the collection anywhere, then run a skill's installer. It symlinks the skill into `~/.claude/skills/` and wires its always-on import into `CLAUDE.md`:
+
+```bash
+git clone https://github.com/broisnees/skills.git ~/src/claude-skills
+bash ~/src/claude-skills/me/install.sh
+```
+
+Pass `--project` to the installer to install into one repo instead. Or link it by hand:
+
+```bash
+ln -s ~/src/claude-skills/me ~/.claude/skills/me
+```
+
+Re-running the installer changes nothing. Invoke a skill directly with `/me` or `/write-as-bro`, or let it trigger on its own.

@@ -1,0 +1,41 @@
+---
+title: "pcvison: Let Claude see and drive a Linux desktop"
+published: 2026-10-29
+description: pcvison holds pc, a Go CLI and MCP server that lets Claude see and drive my Hyprland desktop on Linux and tells it what the machine is doing.
+---
+
+pcvison is where `pc` lives: a tool that lets an agent see and drive my Linux desktop and tells it what the machine is doing. It is one static Go binary (about 4 MB, no runtime, no cgo) that is three things at once: a CLI, a resident daemon that keeps everything expensive warm, and an MCP server (`pc mcp`) that gives Claude the same commands as tools, with screenshots inline. It replaces my earlier Python `usepc` skill and `pcvision` MCP server.
+
+## Features
+
+- **The machine**: `pc state` covers load, memory, disks, network, power, temperatures, the busiest processes, focus and a `PROBLEMS` list. On my machine that list immediately turned up four failed units, a service restarting 33 times an hour and a root disk at 99%.
+- **What changed**: `pc events` shows the last 15 minutes of failed or flapping services, crashes, OOM kills, processes and windows, and `pc top` shows everything live.
+- **The desktop**: list windows, take screenshots, click, type, press key combos, paste, scroll, drag, open apps and wait for a window or the screen to settle. `pc do` runs a whole sequence in one call.
+- **The agent's own cursor**: a clone of my pointer on an overlay that clicks pass through. It glides to whatever the agent is about to touch, ripples on a click, and shows an "AI is typing" badge while the agent types.
+- **My input stays mine**: a click sends warp, press, release and warp back to my real pointer as one Wayland write, so it never visibly leaves where I put it. If I'm holding Ctrl, Super or Alt, pc waits and then refuses instead of acting. `pc input off` is a kill switch only I can turn back on.
+- **Speed**, measured with a warm daemon on two 1920x1080 monitors: 3 to 5 ms for `pc state`, `pc ps` and `pc windows`, 26 ms for a 1280px JPEG screenshot, 7 to 8 ms for a click, plus the glide.
+
+## Requirements
+
+Linux with Hyprland. The process, service and log commands work on any systemd Linux, and the desktop half needs Hyprland 0.5x.
+
+## Install
+
+```bash
+make install        # or: bash install.sh
+```
+
+That builds `plugin/bin/pc`, links it to `~/.local/bin/pc`, installs the `pc` Claude Code plugin (skill, MCP server and `pc` on the Bash PATH) and unregisters the old `pcvision` and `usepc`.
+
+## Usage
+
+```bash
+pc state      # load, memory, disks, net, power, temps, busiest processes, focus, PROBLEMS
+pc shot                    # focused monitor; -w firefox, -m HDMI-A-2, -r "X,Y WxH", --all
+pc click 412 230           # x,y = pixels of the last screenshot, nothing to convert
+pc type -w firefox "hello" # focuses without moving my pointer, verifies, then types
+```
+
+## Why pcvision stopped working
+
+Omarchy moved Hyprland to the Lua config, where `hyprctl dispatch movecursor` and `focuswindow` fail with a Lua syntax error and `hyprctl keyword` is refused. pcvision could no longer move the pointer, focus a window or switch workspace, and it needed a per-boot ACL on `/dev/uinput` for mouse buttons. pc talks to the IPC socket in whichever dialect is running and drives input through Wayland protocols that need no permissions.

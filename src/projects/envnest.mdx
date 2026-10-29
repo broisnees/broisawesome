@@ -1,0 +1,87 @@
+---
+title: "envnest: Type-safe env validation for NestJS"
+published: 2026-10-29
+description: envnest is a TypeScript library for NestJS that validates environment variables against a Zod schema and gives typed access through ConfigModule.
+---
+
+envnest is a TypeScript library for NestJS apps that validates environment variables against a Zod schema and gives typed access to them. I define the schema once, hand its validator to `@nestjs/config`'s `ConfigModule`, and read values through a typed `ConfigService` or straight off a typed `process.env`.
+
+## Features
+
+- Type-safe access to environment variables.
+- Automatic validation, wired in through `ConfigModule`'s `validate` option.
+- Default values, declared in the Zod schema.
+- Global type augmentation for `process.env`.
+- Built-in presets for common configurations, plus support for custom presets.
+- `z` re-exported from the package, so the schema needs no separate Zod import.
+
+## Install
+
+```bash
+npm install envnest
+```
+
+## Usage
+
+Define the schema and create the service:
+
+```typescript
+// src/config/env.config.ts
+import { createEnvConfig, z } from "envnest";
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(["development", "production"]).default("development"),
+  PORT: z.string().transform(Number).default("3000"),
+  DATABASE_URL: z.string().url(),
+  TEST: z.string(),
+});
+
+export const envService = createEnvConfig(envSchema);
+
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv extends z.infer<typeof envSchema> {}
+  }
+}
+```
+
+Wire it into `ConfigModule` in `app.module.ts`:
+
+```typescript
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { envService } from './config/env.config';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate: envService.validateConfig,
+    }),
+    // other imports...
+  ],
+  // ...
+})
+export class AppModule {}
+```
+
+Read validated values in any service:
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { envService } from './config/env.config';
+
+@Injectable()
+export class AppService {
+  getHello(): string {
+    const url = envService.config.get("DATABASE_URL");
+    return `testing ${url} ${process.env.PORT}`;
+  }
+}
+```
+
+## API
+
+- `createEnvConfig(schema: ZodSchema)` creates a configuration service with validation.
+- `envService.config` is a typed `ConfigService` instance.
+- `envService.validateConfig` is the validation function to pass to `ConfigModule`.

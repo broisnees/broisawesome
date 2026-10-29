@@ -1,0 +1,62 @@
+---
+title: "tower: Control plane for Claude Code and Codex agents in tmux"
+published: 2026-10-29
+description: tower is a control plane for Claude Code and Codex agents in tmux on Linux, with a sidebar, live feeds, a dashboard, task hand-offs and auto retry.
+---
+
+tower is a control plane for the coding agents I run in tmux: Claude Code sessions in their own panes, plus headless Claude Code and Codex agents that tower runs itself. It's written in Go, with a Bubble Tea UI.
+
+## Features
+
+- **Sidebar** in every window: a spinner while an agent works, what it's running, its last prompt and its token counts.
+- **Grid** of every agent at once, and a **live feed** per agent read from its transcript: my messages, its replies, commands with their output, file edits as diffs.
+- **Dashboard** with the selected agent's live screen, activity log, git diff and last reply. A **branches** view shows each branch my agents work on, and a **status panel** shows who needs me, what each agent is running, cost, and the plan's 5-hour and 7-day usage.
+- **Agents assigning work to each other**: `tower ask` hands a task to another agent and the daemon pastes the answer back into the asker. Tasks survive a daemon restart.
+- **Input bar** in every window with history, voice typing, pasted images and dropped files. A quick Claude run (Haiku by default) rewrites what I typed or dictated into a complete prompt.
+- **Auto retry** on API or network errors, doubling the wait from 5 seconds up to 5 minutes over 8 tries. A usage limit waits for its reset, and login or billing errors come to me instead.
+- **Browser in tmux**: `tower browse` runs my installed Chrome headless and draws the page in a tmux window. Agents screenshot the pages they build with `tower browse --shot`.
+- **Headless agents**: Claude Code or Codex shown as a chat with tool cards, diffs and allow or deny buttons for every approval.
+
+## How it works
+
+`tower hook` runs on every Claude Code lifecycle event. It reads `$TMUX_PANE` to know the session's pane and writes its state, current tool call and prompt to a JSON file. Everything else joins those files with `tmux list-panes`. Messages go in as a bracketed paste through `tmux paste-buffer`, so Claude Code queues them like typed input.
+
+Headless agents run under a daemon, `tower serve`, that folds Claude Code's stream-json and Codex's JSON-RPC into one event stream per thread. They keep working after I close the dashboard and resume after a restart.
+
+## Requirements
+
+- Linux, tmux (3.7+ for synchronized output) and Claude Code on `$PATH`.
+- Go 1.26 to build, and `jq` for `make hooks`.
+- Optional, one feature each: `codex`, `git`, `wl-paste`, `ffmpeg`, `voxtype`, and Chrome, Chromium or Brave.
+
+## Install
+
+```sh
+git clone https://github.com/broisnees/tower ~/tower
+cd ~/tower
+make install   # builds bin/tower, links it to ~/.local/bin/tower
+make hooks     # registers the hook in ~/.claude/settings.json (backup kept)
+make skill     # links skill/ to ~/.claude/skills/tower so agents know the CLI
+```
+
+Then load it from `tmux.conf`:
+
+```tmux
+run-shell ~/tower/tower.tmux
+set -g status-right "#{E:@tower_status}..."                 # counter
+set -g window-status-format " #I#{?@tower_state, #{E:@tower_icon},} "   # ✻ per agent window
+set -g window-status-current-format " #I#{?@tower_state, #{E:@tower_icon},} "
+```
+
+`prefix a` opens the sidebar, `prefix t` the dashboard and `prefix i` the input bar.
+
+## Usage
+
+```sh
+tower ls                                   # who is running, where, doing what
+tower spawn -n tests -w "make the flaky auth test deterministic"
+tower send --wait tests "status? paste the failing assertion"
+tower wait tests && tower last tests
+tower ask api "add retries to the token refresh"  # from an agent: answer comes back to it
+tower new -e codex -w -n api "add retries to the token refresh"   # headless
+```

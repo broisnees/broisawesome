@@ -1,0 +1,77 @@
+---
+title: "registry-mcp: Search npm, JSR and Deno from one MCP tool"
+published: 2026-10-29
+description: registry-mcp (@registry/mcp on JSR) is a Deno MCP server that searches npm, JSR and Deno, finds CDN imports and checks bundle size and dependencies.
+---
+
+registry-mcp is a Model Context Protocol server, published on JSR as `@registry/mcp`, that gives AI assistants package registry tools. It searches npm, JSR and Deno from one place, auto-detects which registry a package belongs to, and covers CDN import URLs, vulnerability checks, bundle sizes and dependency analysis.
+
+## Setup
+
+It's a Deno package, so it runs with `deno` rather than `npx`. Add it to an MCP client such as Cursor (`.cursor/mcp.json`) or Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "@registry/mcp": {
+      "command": "deno",
+      "args": ["run", "--allow-net", "--allow-env", "jsr:@registry/mcp/mcp"]
+    }
+  }
+}
+```
+
+To pin a default registry, set `REGISTRY_MCP_PROVIDER`:
+
+```json
+{
+  "mcpServers": {
+    "@registry/mcp": {
+      "command": "deno",
+      "args": ["run", "--allow-net", "--allow-env", "jsr:@registry/mcp/mcp"],
+      "env": {
+        "REGISTRY_MCP_PROVIDER": "npm"
+      }
+    }
+  }
+}
+```
+
+Valid values are `npm`, `jsr` and `deno`. Leave it out for auto-detection, or override it per call with the `registry` parameter.
+
+## Tools
+
+- **Search**: `search_packages` with automatic registry detection, `search_all_registries` to query npm, JSR and Deno at once, and `search_npm`, `search_jsr` and `search_deno` for a single registry.
+- **CDN**: `get_cdn_imports` returns import URLs for unpkg, jsdelivr, cdnjs, skypack, esm.sh, jsr.io and deno.land, and `search_cdn` searches CDN providers directly.
+- **Security and size**: `check_vuln` looks for known vulnerabilities before installing (full checking still needs `npm audit` locally), and `check_bundle_size` reports minified, gzipped and Brotli sizes.
+- **Dependencies**: `analyze_dependency` counts direct, dev, peer and optional dependencies, `dependency_tree` returns the full tree, `peer_deps` lists what has to be installed separately, and `check_outdated` builds the command to find outdated packages.
+- **Package management**: `install`, `remove`, `update` and `ci` generate the matching commands for a workspace.
+- **Utility**: `detect_registry` names the registry a package belongs to, and `get_registry_info` returns a registry's URLs and endpoints.
+
+Every tool answers twice: formatted text for the assistant to read, and JSON for programmatic use.
+
+## Registry auto-detection
+
+- Names that start with `@` and contain `/` (like `@std/path`) go to JSR.
+- URLs containing `deno.land` or starting with `https://` go to Deno.
+- Everything else defaults to npm.
+
+## CLI
+
+A smaller CLI covers search and detection. CDN imports, vulnerability checks, bundle sizes and dependency analysis need the MCP server.
+
+```bash
+deno run --allow-net --allow-env jsr:@registry/mcp/cli search lodash
+deno run --allow-net --allow-env jsr:@registry/mcp/cli search-all express
+deno run --allow-net --allow-env jsr:@registry/mcp/cli detect @std/path
+```
+
+Or install it once with Deno:
+
+```bash
+# Install once globally
+deno install --allow-net --allow-env --name registry-mcp jsr:@registry/mcp/cli
+
+# Then use directly from anywhere
+registry-mcp search lodash
+```

@@ -1,0 +1,63 @@
+---
+title: "safis.fyi: An agent skill that builds interactive explainers"
+published: 2026-10-29
+description: Safis is an agent skill for Claude Code, Codex, OpenCode and Cursor that builds interactive explainer pages with live 2D, 3D, map and sound figures.
+---
+
+Safis is an agent skill that teaches an idea by building it as a page the reader can drag, turn and cut open. It runs in Claude Code, Codex, OpenCode, Cursor and other agents that read Agent Skills, and it writes long-form explainers with live figures into one HTML file that opens straight from disk. Every explainer on [safis.fyi](https://safis.fyi) was written by the skill and checked in a headless browser.
+
+## What it makes
+
+One page per topic: a question in the title, an abstract, 7 to 12 numbered sections and about 25 figures woven into the prose. Each figure carries one idea and something to move. The text says what to try, the figure lets the reader try it, and the next paragraph names what they saw.
+
+- **2D canvas**: cross-sections, graphs and simulations with sliders, knobs and XY pads.
+- **3D**: a small WebGL 2 engine with hatched section cuts and see-through parts.
+- **Isometric illustration**: machines from many small solid parts, cut away and exportable as SVG.
+- **Effects**: fire, smoke, airflow, ripples and glow.
+- **Maps**: world maps and globes in five projections.
+- **Optics**: rays through mirrors, lenses, prisms and the eye.
+- **Sound and images**: tones the reader hears, spectra, filters and dithering.
+- **Diagrams and code**: Mermaid and Shiki, pre-rendered so the page makes no requests.
+
+The prose has numbers the reader drags, "try this" links that set a figure, TeX rendered as MathML, sidenotes and citations.
+
+## Install
+
+```bash
+npx skills add broisnees/safis -g
+```
+
+The installer asks which agents to set up. Without `-g` it installs for the current project only. For Claude Code by hand:
+
+```bash
+git clone https://github.com/broisnees/safis
+ln -s "$PWD/safis/skills/safis" ~/.claude/skills/safis
+```
+
+## Requirements
+
+- Node 22 or newer, and Chrome, Chromium or Edge for the checks (set `CHROME_PATH` if it isn't found).
+- The pages need nothing: fonts and runtime are inside the file. 3D figures and effects need WebGL 2.
+- The first page with diagrams or code installs pinned renderers into `~/.cache/safis`, which needs npm and a network connection once.
+
+## Usage
+
+```text
+/safis how a turbofan makes thrust
+```
+
+Or describe the topic in plain words and the agent picks the skill up. Pages run about 25 figures and 3,300 to 4,500 words by default, and "a short piece" gets 8 to 12 figures. Several pages in one folder become a site with a shared sidebar.
+
+## How it works
+
+```text
+plan  ->  scaffold  ->  build in passes  ->  render  ->  verify  ->  explore  ->  fix  ->  report
+```
+
+`verify.mjs` loads each page at desktop and phone widths and flags script errors, blank figures, controls that change nothing and frozen animations. `explore.mjs` sweeps every slider and turns every 3D view. The scripts use only Node built-ins and drive Chrome over the DevTools protocol, and the runtime is plain JavaScript with no dependencies.
+
+The same figures ship as npm packages: `@safis/core` plus wrappers for React, Vue, Svelte and Astro.
+
+## Limits
+
+Facts still need a reader's eye. The skill asks for real sources and lists its simplifications, but it can be wrong, so a page about medicine, law or safety needs review by someone in the field. Standalone pages weigh about 850 KB because they carry their own fonts and runtime.

@@ -1,0 +1,63 @@
+---
+title: "chrome-extension-template: Chrome extension starter"
+published: 2026-10-29
+description: chrome-extension-template is a starter for Manifest V3 Chrome extensions with React 19, TypeScript, Vite 7 and Rolldown, Bun, and hot reload.
+---
+
+chrome-extension-template is a starting point for Chrome extensions: a Manifest V3 project with a React popup, a background service worker, content scripts and an options page already laid out, built with Vite and hot reload wired up for development.
+
+## Features
+
+- **React** for the UI.
+- **Vite with Rolldown**: Vite 7 with the experimental Rolldown bundler.
+- **TypeScript** with strict type checking.
+- **Manifest V3**, the current Chrome extension manifest format.
+- **Hot reload** in development, so the loaded extension reloads on every change.
+- **Bun** as the package manager and runtime.
+
+## Project structure
+
+```text
+src/
+├── popup/          # Popup UI (React components)
+├── background/     # Service worker scripts
+├── contentScript/   # Content scripts
+├── options/         # Options page
+└── utils/           # Shared utilities
+```
+
+## Install
+
+```bash
+bun install
+```
+
+## Development
+
+Build in watch mode:
+
+```bash
+bun run dev
+```
+
+Start the hot-reload server:
+
+```bash
+bun run watch
+```
+
+The loop:
+
+1. Edit the React components in `src/popup/`.
+2. Run `bun run dev` to build in watch mode.
+3. Run `bun run watch` to start the hot-reload server.
+4. Load the `dist/` folder as an unpacked extension in Chrome.
+5. Changes reload the extension automatically.
+
+## Build
+
+```bash
+bun run build
+```
+
+The output lands in `dist/`, ready to load as an unpacked extension in Chrome.

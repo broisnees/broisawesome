@@ -1,0 +1,64 @@
+---
+title: "wasper: MCP server and API proxy from any OpenAPI spec"
+published: 2026-10-29
+description: wasper hosts an MCP server and API proxy from any OpenAPI spec, with a browser studio for requests and auth roles. Runs on macOS, Linux and Windows.
+---
+
+wasper hosts an MCP server and an API proxy from any OpenAPI spec. Like Drizzle Studio, but for APIs. Point it at a spec URL or a local file and it runs as a background daemon that AI agents call over MCP, with Wasper Studio at studio.stroke.click as the browser explorer that connects to it.
+
+## Features
+
+- **Background daemon.** `wasper up` returns to the shell immediately and listens on port 3388 by default.
+- **Several APIs at once.** Run multiple specs on different ports, list them with `wasper ps` and stop them all with `wasper down --all`.
+- **Spec history.** Load a new spec on a running daemon, hot-reload the current one, and restart with any saved spec.
+- **Feature toggles** on the running daemon: the MCP endpoint, the HTTP proxy, AI chat, and a read-only mode that blocks non-GET upstream requests.
+- **Workspaces** in the studio, Postman-style, each with default auth, default headers and a default environment for `{{var}}` substitution.
+- **Auth types**: bearer, basic, API key, OAuth2 client credentials, OIDC, custom headers, or a saved CLI auth profile. Each request uses its own auth first, then the workspace default, then the CLI's active auth.
+- **Auth roles for agents.** Every MCP agent learns the saved roles on connect. It can pass `authProfile` to `execute_api_request` for one request, so concurrent agents act as different roles without interfering, or call `set_active_auth` to switch the global default. With `wasper readonly on`, agents can explore an API safely.
+- **System service** that starts on login: systemd on Linux, a LaunchAgent on macOS.
+
+## Install
+
+macOS and Linux:
+
+```bash
+curl -fsSL https://studio.stroke.click/install.sh | sh
+```
+
+Windows (PowerShell):
+
+```powershell
+irm https://studio.stroke.click/install.ps1 | iex
+```
+
+These installers don't need Node or Bun. With a package manager instead:
+
+```bash
+npm install -g wasper-cli
+bun add -g wasper-cli
+```
+
+## Quick start
+
+`wasper up` starts the daemon in the background and hands the shell back:
+
+```bash
+wasper up --url https://petstore.swagger.io/v2/swagger.json
+
+# Check status
+wasper status
+
+# Stop
+wasper down
+```
+
+## Self-hosting
+
+```bash
+wasper up \
+  --url https://petstore3.swagger.io/api/v3/openapi.json \
+  --origin https://agent.example.com \
+  --token "$(openssl rand -hex 24)"
+```
+
+`--token` requires a bearer token on every request, and `--host 127.0.0.1` keeps it local-only. Then connect the studio at `https://studio.stroke.click/?server=https://agent.example.com&token=<secret>`. It also runs in Docker and behind a reverse proxy.

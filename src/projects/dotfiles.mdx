@@ -1,0 +1,48 @@
+---
+published: 2026-10-29
+description: My dotfiles for an Omarchy and Hyprland Linux desktop, with zsh, git, Neovim, tmux, Cursor and Claude Code config, symlinked into $HOME by GNU Stow.
+---
+
+These are my dotfiles: the Omarchy/Hyprland desktop, shell, git, editor and terminal config I set up on a new machine. They're managed with [GNU Stow](https://www.gnu.org/software/stow/). Each top-level directory is a package whose internal path mirrors `$HOME`, so `hypr/.config/hypr/...` lands at `~/.config/hypr`.
+
+## New machine setup
+
+```bash
+git clone https://github.com/broisnees/dotfiles.git ~/dotfiles
+~/dotfiles/install.sh
+```
+
+`install.sh` installs GNU Stow if it's missing, then symlinks every package into `$HOME`. Any real (non-symlink) file it would overwrite gets moved into `~/.dotfiles-backup-<timestamp>/` first, and already-linked files are left alone, so it's safe to re-run at any time.
+
+`~/.ssh` is deliberately not managed here, and keys are never committed to the repo. On a new machine I restore them by hand or from a password manager.
+
+## Packages
+
+| Package | Covers |
+|---|---|
+| `hypr`, `waybar`, `walker`, `mako` | Omarchy/Hyprland desktop config |
+| `omarchy` | My custom `brotheme` theme and hooks (the other stock themes stay unmanaged) |
+| `zsh`, `bash`, `git` | Shell and git config |
+| `cursor` | Cursor editor settings, keybindings and `.cursorrules` |
+| `claude` | Claude Code `settings.json` only, never credentials, history or sessions |
+| `nvim`, `starship`, `tmux`, `tsc`, `vscode`, `node` | Editor and terminal odds and ends |
+
+## Auto show/hide Dock on macOS
+
+The repo also keeps three Dock commands for macOS. Keep the smooth animation but remove the delay:
+
+```bash
+defaults write com.apple.dock autohide-delay -float 0; killall Dock
+```
+
+Reveal instantly:
+
+```bash
+defaults write com.apple.dock autohide-time-modifier -int 0; killall Dock
+```
+
+Restore the default behavior:
+
+```bash
+defaults delete com.apple.dock autohide-delay; killall Dock
+```

@@ -1,0 +1,82 @@
+---
+title: "vite-mcp: Browser access for MCP clients in Vite dev"
+published: 2026-10-29
+description: vite-mcp is a Vite plugin that runs an MCP server on the dev server, so AI agents can read the browser's console, storage, performance and component tree.
+---
+
+vite-mcp is a Vite plugin that adds Model Context Protocol (MCP) server capabilities to Vite development. MCP clients connect to it and interact with the browser environment through adapters, which gives an agent eyes inside the browser: instead of working blind during HMR, it sees the UI, console and page state in real time.
+
+## Adapters
+
+- **consoleAdapter**: read console messages from the browser.
+- **cookieAdapter**: read cookies.
+- **localStorageAdapter** and **sessionStorageAdapter**: read stored items.
+- **cacheAdapter**: manage the Cache API (list, get, set and delete entries).
+- **indexedDBAdapter**: list IndexedDB databases and get, set or delete entries.
+- **performanceAdapter**: Web Vitals, navigation timing and resource timings.
+- **componentTreeAdapter**: the component tree for React, Vue and Svelte, plus route information.
+
+## Install
+
+```bash
+npm install vite-mcp
+```
+
+```typescript
+// vite.config.ts
+import { defineConfig } from "vite";
+import { viteMcp } from "vite-mcp";
+
+export default defineConfig({
+  plugins: [viteMcp()],
+});
+```
+
+To pick adapters, pass them in. Custom adapters are experimental.
+
+```typescript
+import { viteMcp } from "vite-mcp";
+import { consoleAdapter } from "vite-mcp/adapters";
+
+export default defineConfig({
+  plugins: [
+    viteMcp({
+      adapters: [
+        consoleAdapter,
+        // Add your custom adapters here ( experimental )
+      ],
+    }),
+  ],
+});
+```
+
+## Connect an MCP client
+
+The plugin serves MCP at `/__mcp` by default:
+
+```json
+// .mcp.json
+{
+  "mcpServers": {
+    "vite-dev-mcp": {
+      "url": "http://localhost:5173/__mcp"
+    }
+  }
+}
+```
+
+## Framework support
+
+For plain HTML files the plugin injects its bridge script automatically. Frameworks that generate HTML dynamically, like React Router, Remix and TanStack Start, need the virtual module imported at the very top of the client entry (`app/entry.client.tsx` for Remix, `src/entry-client.tsx` for TanStack Start, `src/main.tsx` or `src/entry.client.tsx` for React Router):
+
+```typescript
+/// add reference only if the type throws, else fine! no need to reference
+/// <reference types="vite-mcp/vite-mcp-env" />
+import "virtual:mcp";
+```
+
+The module starts the browser bridge and connects to the MCP server over Vite's HMR WebSocket. It only runs in development. Once it loads, the browser console prints `[vite-mcp] Bridge: Bridge ready!`.
+
+## Status
+
+Component trees, routes, Cache API, IndexedDB, console filtering and performance metrics are done. Network logs, service worker monitoring, user-defined adapters and remote debugging are still on the roadmap.

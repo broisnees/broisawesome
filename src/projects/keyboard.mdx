@@ -1,0 +1,49 @@
+---
+title: "keyboard: Epomaker TH40 on my own QMK firmware"
+published: 2026-10-29
+description: Custom QMK firmware for my Epomaker TH40, a 40% keyboard whose three indicator lamps show what Claude Code is doing, plus a status bus scripts can drive.
+---
+
+keyboard is my custom QMK firmware for the Epomaker TH40, a 40% keyboard. Its three indicator lamps show what Claude Code is doing, and the same lamps double as a general-purpose status bus that anything on the machine can write to.
+
+## Features
+
+- **Claude Code integration**: the lamps mirror Claude's state live, and three keys (`◆ ✓ ✕`) focus, approve and interrupt it from anywhere.
+- **A status bus**: four slots with priorities. Slot 0 tracks Claude Code and slots 1 to 3 are free for anything, like a full disk, a failed CI run or dropped wifi.
+- **Tmux and windows on one layer**: the left hand sends tmux's own `⌃b` sequences, the right hand sends the `Super` chords Omarchy binds. `H J K L` walks tmux panes and `N M , .` right below walks desktop windows.
+- **Eight layers**, among them Nav, Symbols, Digits and System. Both space bars together reach System, and the `'` key locks any hold layer, with a one-minute safety release.
+- **Combos**: `Q+W` or `J+K` for Esc, `Z+X` for undo, `C+V` for Caps Word, `Q+P` to lock the keyboard, and more. Most step aside mid-word so those letters never wait.
+- **`Tab` holds for Nav and `Alt`+`Tab` stays instant**: a `pre_process_record_kb` hook skips the tap-hold decision when a modifier is already down, normally impossible on an `LT()` key.
+- **Typing extras**: double-tap Shift for Caps Lock, Caps Word, Repeat and Alt-Repeat, dynamic macros, one-shot mods and a one-handed mirror mode.
+- **Custom RGB effects**: `claude_aura` mirrors the lamps across the whole board, `claude_rain` is Matrix rain seeded by what I type, and `claude_blackout` turns the keys dark while the lamps stay live.
+- **Speed**: 5,300+ matrix scans per second with eager debounce, 1000 Hz USB and LTO, about 0.7 ms average input latency.
+- A Claude Code plugin with the `th40` CLI, a `/th40` command and a skill.
+
+## Requirements
+
+The QMK version of the TH40, which shows up as USB ID `36b0:304e`. Epomaker also shipped VIA-only TH40s, and if `lsusb` shows a different ID, none of this applies.
+
+## Install
+
+```bash
+git clone https://github.com/broisnees/keyboard.git && cd keyboard
+./setup.sh          # clones QMK, links the keymap, builds
+./flash-th40.sh     # then: unplug, hold top-left key, plug back in
+```
+
+The bootloader is LUFA mass-storage, not DFU. Flashing copies `FIRMWARE.BIN` onto the volume that appears.
+
+## Usage
+
+```bash
+th40 status working
+th40 bus 1 blink red --ttl 60 --priority 95    # disk full, CI failed, wifi down
+th40 config                                    # persistent settings + lock state
+th40 scan-rate                                 # ~5300 matrix scans/sec
+```
+
+## How it works
+
+Upstream QMK does not support this board's es32fs026 (Essemi ES32, Cortex-M0, 128 KB flash, 16 KB RAM). The port lives only in the community fork [carlosedp/qmk_firmware](https://github.com/carlosedp/qmk_firmware), and `setup.sh` shallow-clones it with just the two ChibiOS submodules it needs: roughly 1.4 GB instead of 4 GB.
+
+My keymap lives in `keymap/` and is symlinked into the clone, so the clone stays gitignored and disposable. Nothing edits the fork: `th40.c` owns QMK's `*_user` callbacks, so the keymap overrides the `*_kb` variants and calls through, and a `git pull` never clobbers my changes.

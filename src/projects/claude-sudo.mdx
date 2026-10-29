@@ -1,0 +1,43 @@
+---
+title: "claude-sudo: A sudo mode for Claude Code"
+published: 2026-10-29
+description: claude-sudo adds a sudo mode to Claude Code that skips per-call approval prompts, runs sudo from the OS keyring and still blocks destructive commands.
+---
+
+claude-sudo is a sudo mode for Claude Code. While it's armed, Claude stops asking for approval on every tool call, and `sudo` inside a tool call just works: no hanging password prompt, no password in the transcript, no `NOPASSWD` line in `/etc/sudoers`. It's off by default, armed per session, expires on its own and never outlives the session that armed it.
+
+## Why plain sudo hangs
+
+A Bash tool call inherits the controlling terminal, so `sudo` decides it can prompt and writes its password question to a terminal Claude can't read and I can't see. The command hangs until it times out. claude-sudo fixes it the way sudo intends: `sudo -A`, with `SUDO_ASKPASS` pointing at a helper that answers from the keyring.
+
+## Features
+
+- **Password in the OS keyring**: libsecret (gnome-keyring or KWallet), the macOS keychain, pass, or gnupg as a fallback. Claude never sees it.
+- **Four ways to arm**: `claude-sudo autoarm on` for every new session, Shift+Tab into bypass permissions, `/sudo on` for the current session, or `csudo` to start Claude Code already armed.
+- **Guardrails that stay on.** Recursive deletes of system or home directories, `mkfs`, `dd` onto block devices, fork bombs, `shutdown` and interactive root shells are denied outright. Commands that touch `/etc/sudoers`, SSH keys, firewall rules, package removal or `crontab` fall back to a normal prompt, and in bypass permissions, which never prompts, they're refused instead.
+- **Per-user policy overrides** with `claude-sudo policy`.
+- **An audit log** of every privileged command, denial and password hand-off.
+- **Expiry**: 480 minutes by default (`CLAUDE_SUDO_TTL`). When the session ends, a hook disarms it and runs `sudo -k`.
+- **A `sudo` badge** in the status line, wrapped around the existing one.
+
+## Install
+
+Needs `bash` 4+, `jq`, `sudo` and one of the secret stores above.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/broisnees/claude-sudo/main/install.sh | bash
+```
+
+The installer wires three hooks into `~/.claude/settings.json` after backing it up, installs the `/sudo` command and the badge, and asks for the sudo password once, in the terminal, never inside a Claude session.
+
+```bash
+claude-sudo status         # armed? auto-arm? backend? wiring? all of it
+claude-sudo doctor         # full check, makes sudo really authenticate once
+claude-sudo audit -f       # follow every privileged command as it happens
+```
+
+## How it works
+
+Three parts, all failing closed. **The gate**, a `PreToolUse` hook, arms from the permission mode, approves the call, and rewrites `sudo` commands so a shim comes first on `PATH`. **The shim** adds `-A` to authenticate through the askpass helper and `-k` so every privileged command lands in the audit log. **The askpass helper** is the only code that touches the password, and it refuses unless the session is armed and its parent is `sudo` or `sudoedit`.
+
+<Callout title="What it doesn't protect against">Any process running under the same account can read the keyring, so the boundary is the account, not the password. While a session is armed, Claude runs privileged commands without asking, and a prompt injection that reaches that session inherits the same power. Arm only sessions someone is watching, and keep the TTL short when pasting untrusted content.</Callout>

@@ -1,0 +1,88 @@
+---
+published: 2026-10-29
+description: prisma-type-generator is a Prisma generator that writes lightweight TypeScript types from schema.prisma, so frontends and monorepos skip Prisma Client.
+---
+
+prisma-type-generator is a Prisma generator that turns a `schema.prisma` into plain TypeScript types. It exists for code that needs my model and enum types but shouldn't carry Prisma Client: Prisma Client is around 2 MB or more and includes runtime code, while the generated output is type-only with zero runtime code.
+
+That fits a few places well: typed API responses on the frontend, response interfaces for REST or GraphQL APIs, types shared between packages in a monorepo, and form schemas and validation.
+
+## Features
+
+- TypeScript interfaces for every model, and each enum as a string union plus a `const` object.
+- `output` points anywhere, including a shared lib in a monorepo. `clear` empties it before each run so stale files from older generations don't linger.
+- `include`, `exclude` and `enumOnly` narrow what gets generated. With `include`, list the enums and models the selected ones refer to as well.
+- `global` puts every type in the global namespace with a `T` prefix (`TUser`), so nothing needs importing.
+- `splitFiles` writes one file per model and enum, `splitBySchema` follows Prisma's multi-file schema, and `barrelExports` (on by default) adds an `index.ts`.
+- `basicUtilityTypes` (on by default) adds `Partial`, `Required`, `Readonly`, `DeepPartial` and `DeepRequired` for every model.
+- `typeMappings` remaps Prisma types globally, for example `DateTime=string,Bytes=Uint8Array`.
+- `jsonTypeMapping` types `Json` fields through a `PrismaType` namespace I extend myself (rename it with `namespaceName`). It is cross compatible with `prisma-json-types-generator`.
+- `jsDocComments` turns `///` schema comments into JSDoc.
+- Field-level overrides with `/// @type`, including strict string enums (`/// @type !["email", "google"]`) and loose ones that autocomplete but still accept any string.
+- Model directives for extra types: `@input` (create and update DTOs that drop auto-generated fields), `@select`, `@with` for relations, `@group`, `@validated`, `@omit` and `@pick`.
+
+Don't edit the generated files: the next generate replaces them.
+
+## Install
+
+```bash
+npm install prisma-type-generator
+
+# ni prisma-type-generator (@antfu/ni)
+```
+
+## Usage
+
+Add the generator to `schema.prisma`:
+
+```prisma
+generator types {
+  provider = "prisma-type-generator"
+  output   = "../generated/types"
+}
+```
+
+Generate:
+
+```bash
+npx prisma generate --no-hints
+```
+
+Then import the types where Prisma Client would be too heavy:
+
+```ts
+import type { User, Profile } from "../generated/types/prisma";
+
+const user: User = {
+  id: "123",
+  name: "John Doe",
+  email: "john@example.com",
+};
+```
+
+A directive on a model adds types to its namespace. `/// @input` gives create and update input types:
+
+```prisma
+/// @input
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+```
+
+```ts
+export namespace User {
+  /**
+   * Input type for creating User (omits id, createdAt, updatedAt)
+   */
+  export type CreateInput = Omit<User, "id" | "createdAt" | "updatedAt">;
+
+  /**
+   * Input type for updating User (all fields optional, omits id)
+   */
+  export type UpdateInput = Partial<Omit<User, "id">>;
+}
+```

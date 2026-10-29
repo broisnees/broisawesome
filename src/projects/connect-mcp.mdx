@@ -1,0 +1,59 @@
+---
+title: "connect-mcp: An MCP server for shell access over SSH"
+published: 2026-10-29
+description: connect-mcp is an MCP server that gives Claude Code and Claude Desktop a shell on my remote machines over one multiplexed SSH connection per host.
+---
+
+connect-mcp is an MCP server that gives Claude a shell on my remote machines. I register a box once (EC2, VPS, bare metal, a Pi), pick it by name, and Claude runs commands there over a single multiplexed SSH connection.
+
+The point is connection reuse. Every tool call rides the same `ControlMaster` socket, so a command costs one round trip instead of a full TCP connect plus key exchange. On localhost that is 80 ms per command. Against a real EC2 box, multiplexed versus cold is roughly 90 ms versus 900 ms, and Claude fires a lot of commands.
+
+## Features
+
+- **Hosts by name**: `host_add` registers a machine and verifies the connection in the same call, `host_import` pulls hosts out of `~/.ssh/config`, and `host_use` sets the default target so I stop repeating it.
+- **Commands**: `ssh_run` returns exit code, timing, stdout and stderr. Timeouts are enforced on both ends, so a killed command leaves nothing running on the server. `ssh_run_many` runs one command across hosts by name or tag, in parallel.
+- **Files**: `ssh_read_file` reads a file or a line range, `ssh_write_file` writes or appends with a backup by default, and `ssh_transfer` copies files or directories either way.
+- **Long-running work**: `ssh_job` starts work under `setsid nohup` and hands back a job id. The work survives a dropped connection, a sleeping laptop and the end of the conversation.
+- **Port forwarding**: `ssh_forward` adds a tunnel to the socket that's already open, so there's no second connection and no second auth.
+- **Probing**: `host_status` with `probe` is what I reach for on an unfamiliar box: OS, kernel, memory, disk, load, sudo, installed tools and what is listening.
+- **Sudo, with or without a password**: `sudo: true` runs a command as root. For a box that prompts, the password comes from a command like `pass` or `op`, an env var, the OS keyring or plaintext in `hosts.json`, and it never goes on the command line.
+- **An audit log**: every call lands in `~/.config/connect-mcp/audit.log` as JSONL with host, command, exit code and duration.
+
+Nothing is filtered on the server side. The gate is the client: Claude Code prompts before every MCP tool call and shows me the exact command and host first.
+
+## Install
+
+```bash
+git clone <this repo> connect-mcp && cd connect-mcp
+npm install && npm run build
+```
+
+Register it with Claude Code:
+
+```bash
+claude mcp add connect --scope user -- node /absolute/path/to/connect-mcp/dist/index.js
+```
+
+For Claude Desktop, add the same command to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "connect": { "command": "node", "args": ["/absolute/path/to/connect-mcp/dist/index.js"] }
+  }
+}
+```
+
+Auth comes from the local ssh agent, my keys and `~/.ssh/config`, with `BatchMode=yes` forced so nothing ever waits on a password prompt. SSH login is keys only, by design: a host that needs a password gets `ssh-copy-id` first. Hosts live in `~/.config/connect-mcp/hosts.json` (mode 600), and keys are referenced by path, never copied in.
+
+## Usage
+
+After registering it I restart Claude Code once, then describe what I want in plain English and Claude picks the tool:
+
+```text
+1.  "add my EC2 box: 13.51.4.12, user ubuntu, key ~/.ssh/prod.pem, call it prod"
+2.  "probe prod"                        -> OS, cores, memory, disk, what is listening
+3.  "why is nginx returning 502 on prod?"
+4.  "tail the last 100 lines of the api service log"
+5.  "restart the api service"           -> Claude asks, I approve, it runs
+```

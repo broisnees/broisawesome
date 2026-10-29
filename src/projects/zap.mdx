@@ -1,0 +1,61 @@
+---
+title: "zap: A cross-platform universal package manager"
+published: 2026-10-29
+description: zap is a cross-platform universal package manager CLI in Rust that detects the OS and drives apt, pacman, dnf, Homebrew, winget, pip, npm and more.
+---
+
+zap is a universal package manager for the terminal, written in Rust. It detects the operating system, picks the right package manager, and gives one set of commands across all of them, from apt and pacman to Homebrew, winget, Flatpak and pip.
+
+## Features
+
+- **Auto-detection.** zap reads the OS and uses its native package manager, so `zap neovim firefox` works the same on Arch, Ubuntu, Fedora and macOS.
+- **Interactive live search.** Run `zap` on its own for a terminal UI with live results, multi-select and keyboard navigation. With an empty query it suggests popular developer tools like tmux, vim and git.
+- **One interface, many backends.** Pick any backend with `-b`, or name it as the first word: `zap pip install numpy pandas`.
+- **Self-bootstrapping.** Missing Windows package managers (winget, Scoop, Chocolatey) and runtimes (Python for pip) get installed on demand. `-y` auto-approves those prompts.
+- **Self-update.** zap checks GitHub Releases once per run (`ZAP_DISABLE_UPDATE_CHECK=1` skips it), and `zap self-update` compares against the latest release.
+
+## Supported package managers
+
+- **System:** APT (Debian, Ubuntu, Linux Mint, Pop!_OS), pacman and AUR (Arch, Manjaro, EndeavourOS), DNF (Fedora, RHEL/CentOS, Rocky Linux, AlmaLinux), zypper (openSUSE, SUSE), pkg (FreeBSD), Homebrew (macOS), and winget, Scoop and Chocolatey (Windows 10/11)
+- **Universal:** Flatpak, Snap
+- **Language:** pip, Cargo, go install, npm
+
+## Other ways to install
+
+The install script takes a version too, and `ZAP_INSTALL_DIR` changes where it puts the binary (`~/.local/bin` by default). Prebuilt binaries for Linux (x86_64 and ARM64), macOS (Intel and Apple Silicon), FreeBSD and Windows are on the [Releases](https://github.com/broisnees/zap/releases) page. On Windows, run PowerShell as Administrator:
+
+```powershell
+$dest = "$env:ProgramFiles\zap"
+New-Item -ItemType Directory -Force -Path $dest | Out-Null
+Invoke-WebRequest https://github.com/broisnees/zap/releases/latest/download/zap-x86_64-pc-windows-msvc.zip -OutFile zap.zip
+Expand-Archive zap.zip -DestinationPath $dest -Force
+Remove-Item zap.zip
+setx PATH "$($env:PATH);$dest"
+```
+
+Or build from source with Rust 1.70+ and the OpenSSL development libraries:
+
+```bash
+git clone https://github.com/broisnees/zap.git
+cd zap
+cargo install --path . --force
+```
+
+## Usage
+
+```bash
+zap package1 package2 package3
+zap search firefox
+zap -b flatpak search firefox
+zap info neovim
+zap update
+zap system
+zap managers
+zap list
+```
+
+`zap system` shows the detected system and package manager, and `zap managers` lists every package manager available on the machine. `zap devtools` prints the curated developer tools list, grouped into editors, terminals, version control, build tools, utilities, databases, containers and networking.
+
+## How it works
+
+zap reads `/etc/os-release` and checks which package manager executables exist. Based on that, or on the `-b` flag, it loads a backend. Every backend implements the same `PackageManager` trait, which keeps the commands consistent. Adding a package manager starts with a new file in `src/backend/` that implements that trait. The TUI runs on [ratatui](https://github.com/ratatui-org/ratatui), and the project takes inspiration from [yay](https://github.com/Jguer/yay), [paru](https://github.com/Morganamilo/paru) and [topgrade](https://github.com/topgrade-rs/topgrade).
