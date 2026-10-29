@@ -1,0 +1,37 @@
+---
+title: "eWiz: Battery charge limit app for Apple silicon Macs"
+published: 2026-10-29
+description: eWiz is a menu bar app for Apple silicon Macs on macOS 14 and later, with a charge limit that holds even asleep, heat-aware charging and Sealed Sleep.
+---
+
+eWiz is a native menu bar app for Apple silicon MacBooks that cares for the battery. Sitting full and running hot are what wear a battery out, so eWiz holds the charge where I set it, pauses charging when the battery gets warm, and controls what a closed Mac does. It was called Battlify until version 0.18.0; settings, licenses, history and the charge limit carried over.
+
+## Features
+
+- **A charge limit that holds.** Pick a ceiling between 50 and 100% and eWiz holds it, even while the Mac sleeps, by stopping charging just before sleep or by keeping the Mac awake on wall power.
+- **Heat-aware charging.** Above the temperature I set, charging pauses, and the menu says why.
+- **Sealed Sleep.** A closed Mac still wakes itself for the network and maintenance. Sealed Sleep switches those wakes off, turns Bluetooth and Wi-Fi off at lid close so earbuds stay with the phone, and shows what the last close cost. The tradeoff: opening the lid then takes 15 to 30 seconds.
+- **Always Active.** Keeps the Mac running with the lid shut, on the charger or, if allowed, on battery, which also gives clamshell mode on an external display without the charger.
+- **Automation rules.** Plug into a desk display and the limit drops to 80%; join the office Wi-Fi and the Mac stays awake.
+- **AI agents, kept in check.** Claude, Cursor and other MCP apps can keep the Mac awake through a long build on a timer that ends by itself, and eWiz shows which agent holds it.
+- **Schedules and Ready By.** Hold at the limit overnight and top up to full just before leaving, or charge on a weekly timetable.
+- **History and details**: every charge and lid-closed session with drain per hour (exportable as CSV), plus health, cycle count, temperature and what the charger actually negotiated.
+- **One-tap save modes**, a MagSafe light that shows charging or holding where the Mac allows it, and twelve menu bar battery icons.
+
+## Requirements
+
+Apple silicon Macs (M1 and later) on macOS 14 Sonoma or newer, including macOS 26 Tahoe. Intel Macs aren't supported. Charge limiting, Low Power Mode and the sleep controls need a small helper that runs as root, because macOS only lets root change them. It installs once from the menu and uninstalls from Settings › General.
+
+## Install
+
+Download it from ewiz.app, or install with Homebrew:
+
+```bash
+brew install --cask stroke-app/ewiz/ewiz
+```
+
+eWiz isn't notarized by Apple yet, so the first time, right-click the app in Applications and choose Open.
+
+## Pricing
+
+Free for 30 days with every feature and no account, then $2.99 once with free updates. A license works on one Mac at a time. eWiz does its work on the Mac and doesn't send usage anywhere.

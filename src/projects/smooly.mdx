@@ -1,0 +1,47 @@
+---
+published: 2026-10-29
+description: smooly is a small native Windows tray app that adds momentum scrolling, pointer tuning, shake-to-find, cursor themes and mouse button remapping.
+---
+
+smooly makes any mouse feel better on Windows. It's a native app of about 1 MB that lives in the tray and adds momentum scrolling, pointer tuning, macOS-style shake-to-find, cursor themes and button remapping. A global mouse hook means it works in every app, without admin rights.
+
+## Features
+
+- **Momentum scrolling.** Wheel notches become smooth, eased motion, from Low (snappy) to Buttery (long glide), and short scrolls stay responsive with no creeping tail.
+- **Physical deceleration.** Each notch cruises at a constant speed, then hands off to a drag curve (`v' = −a·v^b`), the same hybrid model [Mac Mouse Fix](https://github.com/noah-nuebling/mac-mouse-fix) uses, so a glide has a real momentum tail.
+- **Speed and acceleration.** Set the distance per notch. Acceleration only builds with sustained fast scrolling, so a quick flick doesn't overshoot.
+- **Direction and axes.** Natural scrolling, a smooth tilt wheel, and Shift + wheel for horizontal.
+- **Pointer.** Set the OS pointer speed and turn off "enhance pointer precision" for linear 1:1 movement.
+- **Shake to locate.** Wiggle the mouse and the cursor zooms up so it's easy to find, then eases back.
+- **Cursor themes.** Bundled macOS-like light and dark, Linux-sharp and Amber themes in four sizes, or any `.cur`/`.ani` pack.
+- **Button remapping.** Middle, back and forward take Click, Double-Click, Triple-Click and Hold actions: copy, paste, back, forward, any keyboard shortcut, or typing a string such as an email. Click + Scroll can scroll sideways or zoom, and Click + Drag can pan the page, switch virtual desktop or open Task View. A button with only a click mapped fires on the press, not the release.
+- **Wheel modifiers.** Ctrl + wheel and Alt + wheel can stay Native or become Turbo, Precise or sideways. On Native the notch passes through unsmoothed, since smoothing a zoom would turn one step into a dozen.
+- **Per-app exclusions.** smooly leaves listed programs completely alone, which suits games and anything that reads raw input.
+- **Updates.** smooly checks its GitHub releases and asks before it downloads and runs a newer installer.
+
+## Install
+
+```powershell
+winget install NischalDahal.smooly
+```
+
+Or with Scoop:
+
+```powershell
+scoop bucket add extras
+scoop install smooly
+```
+
+The [Releases](https://github.com/broisnees/smooly/releases) page has an installer (`smooly-x.y.z-setup.exe`) and a portable zip. Releases are code-signed through the SignPath Foundation, so Windows shows no "unknown publisher" warning.
+
+## Using it
+
+The settings window opens on launch, and closing it leaves smooly running in the tray. Changes apply live and save to `%APPDATA%\smooly\config.ini`. Windows blocks it from affecting apps that run as administrator.
+
+## How it works
+
+smooly is C++ with no external libraries. `smooth.cpp` holds the engine and the custom-drawn dark UI, and every tunable lives in `config.h`. The foreground app is tracked by a window event rather than polled per notch, so exclusions cost nothing on the scroll path. Build it with MinGW-w64, w64devkit or MSVC:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File build.ps1
+```

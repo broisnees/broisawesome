@@ -1,0 +1,58 @@
+---
+title: "smooly-linux: Momentum scrolling and gestures for Hyprland"
+published: 2026-10-29
+description: smooly for Linux is a Rust daemon for Hyprland that adds wheel momentum scrolling, button remapping, gestures and shake-to-locate, with a GTK4 app.
+---
+
+smooly for Linux brings momentum scrolling and mouse gestures to Hyprland. It's a user-space daemon that grabs the mouse at the evdev layer, runs the wheel through the same hybrid cruise-then-drag physics as [smooly for Windows](/projects/smooly) and Mac Mouse Fix, and re-emits it as high-resolution scrolling on a virtual pointer. No root, no kernel module, no compositor patch.
+
+## Why it exists
+
+Linux already handles pointer speed, cursor themes and touchpad kinetic scrolling, so smooly for Linux deliberately leaves those alone. What's missing is momentum on a wheel mouse. Existing tools animate each detent along a fixed easing curve, and a timed animation lands on a mark the hand can feel. Real momentum has an asymptotic tail, so after a short constant-speed cruise each detent follows
+
+```text
+v'(t) = -a · v(t)^b
+```
+
+The constants come from Mac Mouse Fix and carry over unchanged, because `REL_WHEEL_HI_RES` uses the same 120 units per detent that Windows uses for `WHEEL_DELTA`.
+
+## Features
+
+- **Scrolling.** Momentum, speed, acceleration, natural direction, tilt wheel, Shift + wheel for sideways, and per-modifier Ctrl/Alt behaviour. A legacy `REL_WHEEL` goes out on each whole detent, so GTK, Qt, Firefox, Chromium and Electron get the smooth stream and older apps still scroll.
+- **Buttons.** Middle, back and forward get click, double, triple and hold, plus wheel-while-held and drag-while-held. Primary and secondary buttons can't be remapped, so no config can lock anyone out of the desktop.
+- **Drag modes.** Because the daemon owns the device, `drag = "precision"` slows the pointer by scaling raw deltas, and `drag = "pan"` freezes it by not forwarding motion.
+- **Shake to locate.** Wiggle the mouse and a soft ring lights up on a `wlr-layer-shell` overlay, or Hyprland's cursor zoom kicks in instead.
+- **Per-app exclusion.** The daemon follows Hyprland's event socket, and excluded window classes get the raw hardware wheel back.
+- **Settings app.** A GTK4 and libadwaita app with five pages and a pause button. It edits `~/.config/smooly/config.toml` with `toml_edit`, so only the keys it touches get rewritten and every comment survives. A config that fails to parse is rejected and the running one stays.
+
+## Install
+
+```bash
+git clone https://github.com/broisnees/smooly-linux
+cd smooly-linux
+./install.sh
+```
+
+The only privilege needed is the `input` group (`sudo usermod -aG input $USER`, then log out). On Arch, build the package instead:
+
+```bash
+cd packaging && makepkg -si
+systemctl --user enable --now smooly
+```
+
+Mice now reach Hyprland as `smooly-virtual-pointer`, so move any `device { name = ... }` settings to the global `input {}` block or key them to that name.
+
+## Commands
+
+```bash
+smooly               # the settings app
+smoolyctl status     # what it's doing, what's focused, what's grabbed
+smoolyctl toggle     # pause/resume; paused means fully native input
+smoolyctl reload
+```
+
+## Limits
+
+- Exclusion and window actions are Hyprland-specific. Scrolling, buttons and gestures work on any compositor, or on a bare TTY.
+- Only one process can hold `EVIOCGRAB` on a device, so input-remapper and interception-tools conflict.
+- Text typing assumes a US layout, and hotplug is a 2-second poll.

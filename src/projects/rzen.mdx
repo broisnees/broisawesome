@@ -1,0 +1,57 @@
+---
+published: 2026-10-29
+description: rzen is a fast, memory-lean, Zen-style web browser written in Rust for macOS 13+, rendering pages with the system WebKit instead of a bundled engine.
+---
+
+rzen is a fast, memory-lean browser in the style of Zen, written in Rust. Instead of bundling its own engine, it renders pages in the engine the OS already ships and keeps warm: WKWebView (Safari's WebKit) on macOS, WebView2 on Windows. rzen is the thin native shell on top.
+
+## Features
+
+- **Lean tabs.** A tab only owns a web view while it's in use. Restored tabs start unloaded, idle tabs get unloaded, and a hard LRU cap bounds how many stay live.
+- **Workspaces and profiles.** Separate people or identities, each with its own tabs, history, settings and website data. Profiles can be password-locked.
+- **Ad and tracker blocking.** EasyList, EasyPrivacy, Peter Lowe's and uBlock lists are converted to WebKit content rules and compiled natively, so no JavaScript runs per request.
+- **Boosts.** Custom CSS and JavaScript per site, applied as each page starts loading.
+- **Command bar.** History search ranked by frecency, with site icons cached on disk.
+- **DNS tools.** Resolver benchmarks, lookups, system DNS switching and cache flush.
+- **Performance panel.** Memory and CPU for the browser plus every WebKit helper process, matching Activity Monitor.
+- **AI agents.** An opt-in local automation API (127.0.0.1 only, with a per-run bearer token) and an MCP server.
+
+## Download
+
+Get the latest `.dmg` from [Releases](https://github.com/broisnees/rzen/releases/latest), open it and drag rzen to Applications. It runs on Apple silicon and Intel Macs with macOS 13 or later.
+
+rzen isn't notarized yet, so macOS blocks the first launch. Open System Settings, Privacy & Security and click **Open Anyway**, or run:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/rzen.app
+```
+
+## Build from source
+
+Requires Rust (edition 2024). macOS 13+ gets the full native integration; other platforms use portable fallbacks.
+
+```bash
+cargo run --release
+```
+
+Building `rzen.app` is needed for "Make default browser" and Dock integration:
+
+```bash
+./scripts/bundle-macos.sh
+```
+
+Passkeys need Apple's browser entitlement and a real signature (the comments in `scripts/bundle-macos.sh` explain how). To build the downloadable disk image, a universal app plus a zip and checksums in `dist/`:
+
+```bash
+./scripts/package-macos.sh
+```
+
+## Use with AI agents
+
+Turn on Settings, AI agents, then register the MCP server. With Claude Code:
+
+```bash
+claude mcp add rzen -- /Applications/rzen.app/Contents/MacOS/rzen mcp
+```
+
+rzen is MIT licensed.

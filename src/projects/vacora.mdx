@@ -1,0 +1,54 @@
+---
+title: "vacora: Check brand name availability across 100+ platforms"
+published: 2026-10-29
+description: vacora is a web app that checks if a brand or product name is free across 100+ platforms, from domains and package registries to social sites.
+---
+
+vacora is a brand and product name availability checker, built with Nuxt 4. Type a name and it checks 100+ platforms (domains, package registries, code hosts, social and creator sites) in parallel, streams each result as it resolves, then grades how brandable the name is.
+
+## What it checks
+
+| Category | Count | Examples |
+|---|---|---|
+| Domains | 56 | `.com`, `.io`, `.dev`, `.ai`, `.app`, `.sh`, `.gg` |
+| Email (MX) | 2 | mail records for `name.com` and `name.io` |
+| Package registries | 22 | npm and npm scopes, JSR, PyPI, crates.io, Docker Hub, Homebrew, AUR |
+| Code and dev | 4 | GitHub, GitLab, Codeberg, Hugging Face |
+| Social | 11 | X, YouTube, Telegram, Bluesky, Mastodon, Hacker News |
+| Creator and content | 7 | Substack, Patreon, Behance, Dribbble, itch.io |
+
+Every check hits the platform's live API or registry server-side, with no API keys required, and reports available, taken or unknown. A weighted score (domains, npm and GitHub count for more) gives an A+ to F brandability grade.
+
+Bot-walled platforms such as Instagram, TikTok, Reddit and Product Hunt are left out on purpose: they return the same HTTP status for any input, so any result would be a guess. The same goes for checking whether an address like `name@gmail.com` is free. The big mail providers block that kind of lookup, so vacora checks MX records instead, which tells whether `name.com` or `name.io` already receive mail.
+
+## How it stays fast
+
+- **One streaming connection.** `GET /api/scan?name=` runs the checks server-side and streams NDJSON, one line per result, which avoids the browser's per-host connection cap.
+- **Bounded concurrency.** At most 12 checks run at once, which keeps the DNS resolver from timing out.
+- **A 10-minute in-memory cache.** Repeat searches are instant and hit rate limits far less.
+- **DNS first for domains.** One nameserver lookup answers most TLDs in about 50 ms, with RDAP as a fallback.
+
+## AI naming mode
+
+Describe a project and a Mistral model brainstorms names, verifies them with a `check_names` tool (the same engine the MCP server exposes), and drops taken ones. The server then re-verifies the final picks itself, so the result never rests on the model's word. Each run costs one credit.
+
+## API and MCP
+
+The HTTP API is public with CORS enabled, and an MCP server (`mcp/server.mjs`) exposes `check_name` and `check_platform` to Claude and other MCP clients.
+
+```bash
+curl -N "http://localhost:3000/api/scan?name=acme"      # streaming NDJSON, all platforms
+curl "http://localhost:3000/api/check/npm?name=acme"     # single platform
+claude mcp add vacora -- node "$(pwd)/mcp/server.mjs"
+```
+
+## Run it
+
+```bash
+pnpm install
+pnpm dev          # http://localhost:3000
+```
+
+Set `GITHUB_TOKEN` to raise the GitHub limit from about 60 to 5,000 checks an hour, `MISTRAL_API_KEY` to turn on AI naming, and `SCAN_PROXY` to route outbound checks through a proxy in another region.
+
+Availability is a strong signal, not legal trademark advice.

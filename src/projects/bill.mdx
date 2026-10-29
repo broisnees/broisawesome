@@ -1,0 +1,42 @@
+---
+published: 2026-10-29
+description: bill is IRD-compliant invoicing for Nepali businesses, with VAT bills, A4 and 80mm thermal printing, a PDF archive, CBMS sync and an offline Android app.
+---
+
+bill is IRD-compliant invoicing for Nepali businesses. A shop registers once with its PAN, VAT status and registration date, then raises bills that carry everything Rule 17 of the VAT Rules 2053 asks for, prints them on A4 or an 80mm thermal roll, archives a PDF of each one, and pushes them to the IRD Central Billing Monitoring System (CBMS).
+
+## What makes a bill compliant
+
+- **Numbering.** One series per store, fiscal year and document type, with nothing skipped and nothing duplicated when several tills bill at once.
+- **Immutability.** An issued bill is never updated or deleted. A mistake is cancelled with a reason, or reversed with a credit note in its own `CN-` series.
+- **Dates** in Bikram Sambat and Gregorian, resolved against Kathmandu time, with the fiscal year running Shrawan 1 to the end of Ashad.
+- **Money** in integer paisa, so no float touches a total. VAT is 13% on the taxable value after discount, with exempt lines totalled separately.
+- **Print tracking.** The first copy prints as the original and every later one is stamped `Copy of Original (#n)`.
+- **Audit trail.** Append-only, with the actor, time, IP and user agent for every action on a bill.
+- **Archive.** Each bill's A4 PDF is written to object storage the moment it's issued, with its SHA-256 on the row so tampering is detectable.
+- **CBMS sync** for VAT-registered stores runs in the background, so a slow or dead link never blocks a sale.
+
+Reports cover sales, taxable value, exempt value, VAT and discounts per fiscal year, by Nepali month, payment method, item and customer, with the sales register as CSV in the column order a return is filed from.
+
+## Android app
+
+A native Kotlin and Compose app, offline-first: a bill is numbered, dated in Bikram Sambat, totalled and QR-coded on the device, printed, and synced afterwards. A device leases a block of invoice numbers while it has signal, so a number printed offline never collides with one the web app hands out, and the server recomputes every synced bill.
+
+## How it works
+
+Built on TanStarter: TanStack Start, Drizzle, Better Auth, Tailwind and shadcn on Base UI, running on Cloudflare Workers with D1 and R2. PDFs are rendered by takumi, a wasm layout engine, so there's no headless browser on the server.
+
+## Running it
+
+```bash
+bun install
+cp .env.example .env          # then fill BETTER_AUTH_SECRET
+bun run db generate           # only after changing the schema
+bun run dev                   # http://localhost:3000
+```
+
+Development touches no third-party service: without WhatsApp or SMS credentials the code is logged, and CBMS pushes are mocked unless `IRD_CBMS_LIVE=true`.
+
+## Status
+
+Real-time CBMS sync is written against the published field list but not yet verified against a live IRD account, and the IRD still has to approve the software for each PAN. Credit notes reverse a bill in full for now.

@@ -1,0 +1,39 @@
+---
+published: 2026-10-29
+description: Strata is a calmer Activity Monitor for macOS showing processes, per-process power, drivers, disk usage and startup items, with tracking and alerts.
+---
+
+Strata is a calmer Activity Monitor for macOS. It shows processes, drivers, files and startup items in layers, and adds tracking, alerts and a menu bar panel on top of the live numbers. It runs on macOS 26 on Apple silicon.
+
+## What it does
+
+- **Overview.** CPU per core with the performance and efficiency clusters, memory with pressure, GPU, power, network and disk, each with 1, 5 or 15 minutes of chart history.
+- **Processes.** Every process with CPU, memory, real power in watts (from the kernel's per-process energy counters), threads, CPU time and disk I/O, as a list or a tree. Values update every second, but rows hold their places for a few seconds and never move while the pointer is on the list. The inspector shows live charts, arguments, environment, open files, network connections and a `sample` of the process.
+- **Tracked.** Follow an app with all its helpers, or a process by name, across restarts: current, peak and average CPU and memory, with custom limits that trigger a notice when crossed or when it stops running.
+- **Alerts.** Memory pressure, swap use, sustained CPU, a runaway process, a nearly full disk, a hot Mac, a low battery, and more. Every threshold is adjustable, and alerts arrive as notifications and stay in a history.
+- **Menu bar.** CPU and memory at a glance, with a panel of sparklines, the busiest processes and anything alerting.
+- **Drivers.** Loaded kernel extensions, system extensions (DriverKit, network, endpoint security, camera), USB devices, and a searchable I/O Registry explorer.
+- **Files.** Volumes with capacity and who's using each disk, plus a disk usage map to drill into.
+- **Startup.** Launch agents and daemons with their state and signer, with enable/disable and load/unload, plus background items from the macOS login items database.
+
+## Requirements
+
+macOS 26 on Apple silicon, Xcode 26 or later, and [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`).
+
+## Build
+
+```bash
+make install    # Release build into /Applications, then open it
+make run        # build (Debug) and open the app
+make selftest   # build, then sample everything once headlessly and check the alert and ordering logic
+```
+
+The Xcode project is generated from `project.yml`, and `make` regenerates it.
+
+## Permissions
+
+Strata isn't sandboxed. It reads system state the way `ps`, `top` and `ioreg` do. Open files and connections of other users' processes, quitting another user's process, and changing system launch daemons ask for an administrator password when needed. Disk Usage reads more folders with Full Disk Access.
+
+## How it works
+
+The samplers read libproc, Mach host stats, IOKit and launchd, and scan disks. A store layer on top keeps the live monitor, the stable row ordering, tracking and alerts. `Strata --stress [seconds]` drives the process table with live data and prints its memory, and `Strata --snapshot <dir>` renders pages to PNGs in light and dark.

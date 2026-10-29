@@ -1,0 +1,43 @@
+---
+title: "commit-rank: GitHub contributor rankings by country"
+published: 2026-10-29
+description: commitrank ranks GitHub developers by commits, pull requests, reviews, contributions and followers per country or city, on Cloudflare Workers.
+---
+
+commitrank is a set of fast GitHub leaderboards: commits, pull requests, reviews, contributions and followers, ranked by country or any city, plus a profile page for every GitHub user. It's built with Nuxt 4 and UnoCSS and runs on Cloudflare Workers with D1 and KV.
+
+## What it does
+
+- **Top 100 per location**, with a podium, instant switching between metrics and a filter. About 60 countries are listed, and any city can be ranked on the fly.
+- **Profiles** for every GitHub user: 12-month stats, a heatmap, streaks, languages, repos, PRs, and an exact rank in their country and worldwide.
+- **Countries ranked against each other** by developers, commits, PRs, contributions and per-developer averages.
+- **Repositories**: the top repos worldwide by stars, forks and language, new repos gaining stars fastest, a detail page with contributors and 52-week commit activity, and two repos side by side.
+- **GitHub's firsts**: the earliest accounts and repository #1.
+- **A JSON API** for leaderboards, countries, users, repos and search.
+
+## How ranking works
+
+GitHub can't sort users by commits, so commitrank keeps its own index in D1:
+
+1. **Discovery.** For each country, with search terms that include its major cities, the crawler pulls the 1,000 most-followed users from GitHub search, the most GitHub returns.
+2. **Stats.** Each user's last-12-month commits, PRs, reviews, issues and contributions come from batched GraphQL and refresh about daily.
+3. **Boards.** After a crawl slice, the location's board is rebuilt and stored as a single row, so a page view is one D1 row read, or none when it's cached in memory.
+4. **Automation filter.** Accounts averaging 100+ commits (or 150+ contributions) per active day are flagged and kept off the rankings, listed under "Excluded as likely automation".
+5. **Location stuffing.** A location naming 6 or more countries ranks on no country's board.
+6. **Claim by visiting.** Opening any profile registers that developer with fresh stats, and if they make their country's top 100 the board is rebuilt on the spot.
+
+Every GitHub-backed value is stale-while-revalidate, so when GitHub errors or rate-limits, the last good value is served. The crawler pauses itself when the token's hourly GraphQL budget drops below 400 points, keeping headroom for visitors, and a cron trigger every 2 minutes keeps the crawl inside the Workers and D1 free plans.
+
+## Run it locally
+
+```bash
+pnpm install
+pnpm wrangler d1 migrations apply commit-rank --local
+NUXT_GITHUB_TOKEN=$(gh auth token) pnpm dev
+```
+
+Cron doesn't run in dev, so fill the local database with crawl rounds by hand:
+
+```bash
+curl "localhost:3000/_nitro/tasks/crawl:seed?minutes=4"   # repeat until it returns "idle": true
+```

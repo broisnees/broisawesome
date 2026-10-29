@@ -1,0 +1,38 @@
+---
+published: 2026-10-29
+description: Torendo is a NEPSE stock market analyzer built with Streamlit, with candlestick charts, indicators, portfolio metrics, backtesting and an AI chat.
+---
+
+Torendo is a market analyzer for NEPSE, the Nepal Stock Exchange, built with Streamlit. It covers the full NEPSE symbol list, with charts, risk metrics, liquidity data and backtesting for whichever stocks I select.
+
+## Features
+
+- **Symbol search.** A searchable picker over the full NEPSE symbol list.
+- **Charts.** Candlesticks with SMA, EMA, Bollinger Bands, RSI and MACD, scroll-zoom, range presets and on-chart drawing tools.
+- **Portfolio analysis.** Return and risk metrics, a correlation heatmap and weighted portfolio analysis.
+- **Liquidity.** Volume profile by price level, rolling turnover and thin-stock stats.
+- **Backtesting.** Moving-average crossover backtests.
+- **AI chat.** A sidebar chat grounded in the data computed for the selected stocks.
+- **Live refresh.** Optional auto-refresh during market hours, Sunday to Thursday, 11:00 to 15:00 NPT.
+- **Shareable views.** Stocks, dates and weights are encoded in the page URL.
+
+## Run locally
+
+```bash
+uv sync
+uv run streamlit run app.py
+```
+
+The AI chat needs a Mistral API key in `.streamlit/secrets.toml`, which is gitignored:
+
+```toml
+MISTRAL_API_KEY = "your-key-here"
+```
+
+## Deploy
+
+Torendo deploys as a standard Streamlit app, with dependencies in `requirements.txt`. On Streamlit Community Cloud, set `MISTRAL_API_KEY` under the app's Settings, Secrets.
+
+## Disclaimer
+
+Market data comes from unofficial public sources and may be delayed, incomplete, or break without notice. Nothing here is financial advice.

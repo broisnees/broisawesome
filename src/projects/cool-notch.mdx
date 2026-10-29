@@ -1,0 +1,39 @@
+---
+title: "cool-notch: Live activities and widgets in the MacBook notch"
+published: 2026-10-29
+description: Cool Notch is a native macOS menu bar app that turns the MacBook notch into a panel of live activities, a volume HUD, widgets and feeds.
+---
+
+Cool Notch turns the MacBook notch into a living surface. The notch stays invisible until the cursor moves onto it, then grows into a panel of widgets and retracts when the cursor leaves. It's a native macOS menu bar app built with SwiftUI and AppKit.
+
+## Features
+
+- **Invisible when idle.** The surface is exactly the notch and pure black, so it disappears into the hardware, and it opens only when the cursor is over the notch itself.
+- **Fluid morph.** One black surface whose width, height and corner radius spring together across three sizes (notch, notification pill, panel), interruptible and reduced-motion aware.
+- **Live activities** split around the camera: album art and an animated equalizer while media plays, a volume level bar, pulsing dots while Claude streams a reply, and notification pills that shake the notch when they land.
+- **Now Playing** metadata, artwork, scrubber and transport for any app through the bundled `mediaremote-adapter`, which works on macOS 15.4 and later.
+- **Feeds** in a tab bar:
+  - **Home**: clock, battery ring, media transport, file shelf and the next calendar event with a countdown.
+  - **Claude**: an Ask Claude box that runs `claude -p` in the notch, and recent sessions to read and send messages to.
+  - **Docker**: running containers, each with a live logs page.
+  - **Network**: live ping with jitter and packet loss, throughput, a speed test through `networkQuality`, and link details.
+  - **Health**: a one-tap check of internet, DNS, Wi-Fi, CPU, memory pressure, disk, battery health, thermals and more.
+  - **Clipboard** history, **Dev** (a Pomodoro timer, git and PR status, listening TCP ports) and a front-camera **Mirror**.
+- **File Shelf.** Drag files onto the panel to park them and drag them back out into any app later. It only remembers URLs, so no copies and no permissions.
+- **Solid menu bar.** A solid strip under the menu bar (black hides the notch) while the real menu bar keeps working on top.
+- **⌘⌃N** toggles the notch from anywhere. Clipboard history, the shelf, the last tab and preferences persist across restarts.
+
+## Build and run
+
+Cool Notch compiles with the Swift toolchain in Command Line Tools, with no Xcode required, and assembles into a normal `.app`:
+
+```bash
+./build_app.sh            # release build → ".build/Cool Notch.app"
+open ".build/Cool Notch.app"
+```
+
+Claude Code's own notifications can show up as notch pills: Cool Notch watches `~/.claude/coolnotch/notifications.jsonl`, so a Notification hook that appends to it is all it takes.
+
+## Permissions
+
+Battery, clock, shelf, clipboard, ports and Now Playing need none. The camera mirror asks for Camera access and the calendar event for Calendars access. Hiding the macOS volume and brightness popup boots out `OSDUIHelper` through `launchctl`, without sudo, and the same toggle reverses it.

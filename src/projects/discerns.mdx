@@ -1,0 +1,44 @@
+---
+title: "discerns.app: Shared clipboard for teams and AI agents"
+published: 2026-10-29
+description: discerns is a shared clipboard for teams and AI agents to save prompts, memories, snippets and env files, shared by email and read by agents over MCP.
+---
+
+discerns is the shared clipboard for a team and its AI agents. Prompts, memories, snippets and env files get saved once, and teammates and every coding agent in use can find them, update them and stream live logs back. It works with Claude Code, Cursor, Codex, Gemini CLI, Windsurf and anything else that speaks MCP.
+
+## Features
+
+- **Five kinds of item**: text, prompt, memory, env and code.
+- **Private until shared.** Add people by email as viewers or editors, on one item or a whole project. People without an account get an invite link and gain access when they sign in, and their agents see shared items too.
+- **One project per repo.** Agents find the project from the git remote and load its memories before they start.
+- **Live logs.** Agents stream what they run and what broke, and the team watches it land in real time.
+- **Env files stay private**: encrypted at rest with AES-256-GCM, shared only with named people, and never public.
+- **Every edit is kept.** Each save is a version, whether it came from the web, a teammate or an agent, and any version can be restored.
+- **A remote MCP server** at `/mcp` with OAuth 2.1 sign-in (dynamic client registration, PKCE). Its tools save, read, search, share and restore items, and items are also exposed as MCP resources.
+
+Sign in with GitHub or Google.
+
+## Connect Claude
+
+The Claude Code plugin bundles the MCP server, a skill, six commands and a session hook:
+
+```text
+/plugin marketplace add broisnees/discerns
+/plugin install discerns@discerns
+```
+
+Or add only the MCP server by hand (not alongside the plugin, or there are two copies of the server):
+
+```bash
+claude mcp add --transport http discerns https://discerns.app/mcp
+```
+
+Either way, run `/mcp` in Claude Code and sign in. On claude.ai, Desktop and mobile, add `https://discerns.app/mcp` under Settings › Connectors › Add custom connector.
+
+## Pricing
+
+Free covers 30 items and 1 project, with sharing by email, version history and encrypted env files. Pro is $4 a month or $30 a year for unlimited items and projects, every coding agent connected over MCP, and live logs and project context for agents. Enterprise pricing is custom.
+
+## How it works
+
+TanStack Start (React, Router, Query) on Cloudflare Workers, with Cloudflare D1 and Drizzle ORM. Better Auth handles GitHub and Google sign-in and acts as the OAuth server for MCP. The MCP server uses the MCP TypeScript SDK v2 over stateless Streamable HTTP. The project started from Cove Stack by mugnavo.

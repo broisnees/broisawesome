@@ -1,0 +1,73 @@
+---
+title: "snipost: A minimal screenshot tool for macOS"
+published: 2026-10-29
+description: Snipost is a minimal macOS menu bar screenshot tool that auto-beautifies every capture with a gradient, padding and shadow, ready to copy, save or post.
+---
+
+Snipost is a minimal screenshot tool for macOS that lives in the menu bar. The idea is snip, auto-beautify, post: capture a screenshot and it appears already beautified, with a background gradient taken from the screenshot's own colors, padding that grows to fit, rounded corners and a soft shadow. One click copies or saves it.
+
+## Capture
+
+Every capture has a global hotkey (remappable in Settings) and a menu bar entry.
+
+| Action | Hotkey |
+|---|---|
+| Capture area | ⌥⇧S |
+| Capture window | ⌥⇧W |
+| Capture full screen | ⌥⇧F |
+| Snip to clipboard, no editing | ⌥⇧C |
+| Scrolling capture (auto-scroll and stitch) | ⌥⇧R |
+| OCR snip (recognized text to clipboard) | ⌥⇧O |
+
+Scrolling capture needs Accessibility permission. OCR uses Apple's Vision framework.
+
+## Editor
+
+After a capture the editor opens on the beautified result:
+
+- **Background.** The auto gradient, 10 presets, the Mac's system wallpapers, a custom solid color or two-color gradient, any image file, or transparent.
+- **Effects.** Vivid, Warm, Cool, Mono, Pixel, Matrix and Comic.
+- **Cursor overlay.** A vector macOS cursor (arrow, hand, I-beam, crosshair). Click the preview to place it and use the slider to resize.
+- **Annotations.** Arrow, box, text and blur/redact, with colors and undo.
+- **Layout.** Padding, corner radius, shadow, and canvas aspect presets (16:9, 1:1, 4:5, 4:3).
+- **Export.** PNG, JPEG or HEIC, then Copy (⌘C), Save to Desktop, or save anywhere with ⌘S.
+
+## Sharing and history
+
+- Google Drive sync (`drive.file` OAuth with PKCE) with an instant share link.
+- Social posting through web intents for X, Threads and LinkedIn, and through the Bluesky and Mastodon APIs.
+- A floating thumbnail after capture, and a History library in the menu bar.
+
+## Requirements
+
+- macOS 14 or later, Apple Silicon or Intel
+- A Swift toolchain (Xcode or the Command Line Tools)
+
+## Getting started
+
+```bash
+# Dev run (menu bar icon appears; Ctrl-C to quit)
+swift run Snipost
+
+# Or build a proper app bundle
+./Scripts/make-app.sh
+open dist/Snipost.app
+```
+
+macOS attributes Screen Recording permission to the app that starts the capture: the terminal during `swift run`, or Snipost.app once bundled. If window contents come out black, grant it in System Settings, Privacy & Security, Screen Recording.
+
+There's also a headless render mode with no UI:
+
+```bash
+swift build
+.build/debug/Snipost --selftest /tmp/snipost-test.png     # synthetic screenshot
+.build/debug/Snipost --beautify in.png out.png            # your own image
+```
+
+## How it works
+
+Snipost is a Swift app. Edge-color sampling of the screenshot drives the auto gradient, and a CoreGraphics compositor draws background, then shadow, then the rounded image. The editor window is SwiftUI, and global hotkeys go through Carbon.
+
+## Status
+
+Sparkle updates and a notarized DMG are still on the roadmap; they need a Developer ID certificate. Until then, Snipost runs from source.

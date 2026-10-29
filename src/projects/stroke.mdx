@@ -1,0 +1,58 @@
+---
+published: 2026-10-29
+description: Stroke is a native database client for macOS, Windows and Linux to query, browse and edit Postgres, MySQL, SQLite and more, with a built-in MCP server.
+---
+
+Stroke is a native database client for engineers and analysts, on macOS, Windows and Linux. It queries, browses and edits every database I run in one fast app, and hands the same database to AI agents through a built-in MCP server.
+
+## Databases
+
+Ten engines today: PostgreSQL, MySQL, MariaDB, SQLite, DuckDB, SQL Server, ClickHouse, CockroachDB, Turso / LibSQL and Cloudflare D1. Redis is in beta.
+
+Signing in with a provider lists every database on the account, ready to open in one click: Neon, Supabase, Prisma Postgres, PlanetScale, TiDB Cloud, Turso, Railway, Nile, Upstash, PostHog and Cloudflare D1. Anything else takes a plain connection string. Stroke connects straight from my machine, credentials stay on the device, and query results never pass through Stroke's servers.
+
+## Features
+
+- **SQL console** with schema-aware autocomplete, formatting and the execution time of every run.
+- **Six result views**: table, JSON, text, chart, ERD and map, switched without running the query again. The table grid has typed column headers, sort, filter, search and inline editing, and pages smoothly through a million rows.
+- **Schema diagrams** drawn six ways: an ER diagram, a hierarchy, Mermaid for docs, a tree of foreign keys, a data dictionary or the DDL.
+- **Staged edits.** Edits, new rows and deletes are marked in the grid, and nothing touches the database until I apply them. Reset and they never happened.
+- **Type-aware editors** for text, numbers, booleans, enums, dates, UUIDs and JSON, plus a right-click menu on every cell.
+- **Find and replace** by match case, whole word or regex, with every cell that will change previewed, old value beside new.
+- **Export** any result to CSV or JSON, or turn it into a chart and pin it to a dashboard.
+- **Command palette** on Cmd/Ctrl+K, with a shortcut for every core view.
+
+## AI and agents
+
+Stroke ships an MCP server, so Claude, Cursor or any MCP client can read the schema and run queries. The client config is one entry:
+
+```json
+{
+  "mcpServers": {
+    "stroke": {
+      "url": "http://127.0.0.1:4319/mcp"
+    }
+  }
+}
+```
+
+Inside the app, a schema-aware AI chat runs queries, explains schemas and writes SQL. Agents and the chat read the same schema I browse, so their answers line up with what's on screen.
+
+## Install
+
+Builds for macOS (Apple silicon and Intel), Windows (installer or MSI) and Linux (AppImage, .deb, .rpm) are on the download page. Homebrew and Scoop skip the first-launch prompt and update in place:
+
+```bash
+brew install --cask stroke-app/tap/stroke
+```
+
+```powershell
+scoop bucket add stroke https://github.com/stroke-app/stroke
+scoop install stroke
+```
+
+Direct downloads aren't code-signed yet, so the first launch asks once.
+
+## Pricing
+
+Most database clients charge $100 or more a year. I think a tool used every day should be owned, so Stroke costs $9.99 once, with every future update and a license key for up to two devices. Trying it needs no account or card, and every feature works while I decide.

@@ -1,0 +1,64 @@
+---
+published: 2026-10-29
+description: Panespace is an i3-style tiling window manager for macOS that reads i3 config syntax, adds instant workspaces and needs no SIP changes or Dock injection.
+---
+
+Panespace is an i3-style tiling window manager for macOS. It reads i3 config syntax, keeps its own instant workspaces, and needs nothing disabled: no SIP changes, no Dock injection.
+
+## Features
+
+- **i3 layouts.** Horizontal and vertical splits, tabbed and stacking containers, and i3's `move` rules.
+- **Instant workspaces.** Panespace keeps its own workspaces, separate from macOS Spaces.
+- **i3 config syntax.** `bindsym`, modes, `for_window` and `assign` rules, gaps, scratchpad and `back_and_forth`.
+- **Mouse.** Drag the edge between two windows and both resize live. Drop a window on another to swap them. Double-click a title bar to zoom that window to the full screen, and again to put it back.
+- **Animations.** Windows glide when the layout changes, and workspace switches slide like macOS Spaces. Turn them off with `animations no`.
+- **Menu bar.** Shows the current workspace and handles workspaces, layout and settings.
+- **Immersive mode.** Auto-hides the macOS menu bar so windows fill the whole display.
+- **Multi-monitor.** Move focus, windows and whole workspaces between displays.
+- **CLI.** `panespace msg` works like `i3-msg`.
+- **Caps.** An optional companion app that turns Caps Lock into a programmable key for opening apps, sending shortcuts or running scripts, set per app.
+
+## Install
+
+Download `Panespace-<version>.zip` from [Releases](https://github.com/broisnees/panespace/releases), unzip it into `~/Applications` and open it. The app isn't notarized, so the first time, right-click it and choose **Open**. To build from source (needs Xcode or the Swift toolchain):
+
+```bash
+make install       # Panespace.app + Caps.app in ~/Applications, CLIs in ~/.local/bin
+make login-item    # start at login
+```
+
+On first launch, allow Panespace in System Settings, Privacy & Security, Accessibility. Quit other window managers (AeroSpace, yabai, Amethyst), turn off Rectangle's drag-to-snap, and use one macOS Space per display.
+
+## Keys and config
+
+`$mod` is ⌃⌥ by default; change it with `set $mod caps | alt | cmd | hyper`. `$mod+h/j/k/l` moves focus, `$mod+1` through `$mod+0` switch workspaces, and `$mod+r` enters resize mode.
+
+The config lives at `~/.config/panespace/config`. An example:
+
+```text
+gaps inner 8
+smart_gaps on
+animations yes                     # animation_duration 180 (ms)
+floating_modifier $mod             # $mod+drag moves, $mod+right-drag resizes
+
+workspace 9 output secondary
+assign [app="^Slack$"] → 9
+for_window [app="^System Settings$"] floating enable
+```
+
+Reload with `$mod+Shift+c`. `panespace check-config` finds mistakes, and `panespace list-windows` shows the app names and titles rules can match.
+
+```bash
+panespace msg workspace 3
+panespace msg '[app="Safari"] focus'
+```
+
+## How it works
+
+Panespace uses the Accessibility API only. Windows on hidden workspaces move to the corner of the screen, so switching workspaces is a single move per window. Animations take their timing from the clock, so a slow app drops frames but never delays the layout. Window moves run on background queues, one thread per app, and the main thread never waits on another app, so one frozen app can't stall the rest. The layout tree, config parser and command engine live in a plain Swift module, `PanespaceCore`, with unit tests.
+
+## Limitations
+
+- Windows on other macOS Spaces, and windows in native macOS fullscreen, can't be tiled.
+- Floating windows aren't kept above tiled ones.
+- Not yet supported: `resize set`, marks, `sticky`, title bars.

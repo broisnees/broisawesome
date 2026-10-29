@@ -1,0 +1,49 @@
+---
+title: "deck: Terminals, browser and coding agents in one Mac app"
+published: 2026-10-29
+description: Deck is a native macOS workspace for coding with AI agents, putting terminals, a browser, Claude Code, Codex, Gemini and more side by side in one window.
+---
+
+Deck is a workspace for coding with agents: terminals, a browser and coding agents in one native Mac window. It chats with Claude Code, Codex, Gemini, Grok or OpenCode, runs any agent's own interface in a real terminal (Cursor Agent, Amp and Aider included), previews the app in a browser beside them, and hands an agent a task on its own branch to review and merge when it's done.
+
+Agents can drive Deck too. From any chat or terminal they open terminals, start the dev server, open pages and read what's on screen, so "start the app and check the page" just works.
+
+## Features
+
+- **Every agent in one window.** Switch agents mid-thread. Work folds into a short summary that opens into every command and edit, with diffs.
+- **Approvals where I type.** Permission requests and agent questions appear above the composer. Each thread gets its own model and access level: Ask first, Accept edits or Full access.
+- **Usage in the status bar**: Claude's 5-hour limit and the conversation's context, with weekly limits and cost a click away.
+- **Prompt rewriting.** A quick Claude run (Haiku by default) turns what I typed or dictated into a clear, complete prompt.
+- **Undo a turn.** In a git project every message saves the files out of the branch's way, so a right-click goes back to before it.
+- **Tasks on their own branch.** Start one from ⌘K and Deck makes a fresh branch and a separate checkout, then starts an agent there. Several run at once, then each gets Merge (one squashed commit), Open PR or Discard.
+- **Terminals** with true colour, mouse support for TUIs, commands as blocks with exit status and Fix with agent, editor-style completions at a zsh prompt, and `# what you want` to have Deck write the command.
+- **A real browser** with a docked Web Inspector and a new tab page listing the dev servers running in the terminals.
+- **"Needs you" badges** and notifications when an agent asks something or a long job finishes.
+- **The rest of the workspace**: snippets, splits, a code editor with git built in, local models through Ollama, LM Studio, llama.cpp and MLX, and everything restored after a restart.
+
+## Requirements
+
+macOS 13 or later. Deck works with whichever agent CLIs are on the `PATH`: `claude`, `codex`, `gemini`, `grok`, `opencode`, `cursor-agent`, `amp`, `aider`.
+
+## Getting started
+
+```bash
+git clone https://github.com/broisnees/deck.git
+cd deck
+scripts/install.sh
+```
+
+This installs Deck.app into `/Applications` and the `deck` command into `~/.local/bin`. Run `deck doctor` to see which agent CLIs it found.
+
+## Let agents drive Deck
+
+Every terminal and chat can use the `deck` command, and its output is JSON:
+
+```bash
+deck run --name dev npm run dev         # a server in a terminal beside you that you both watch
+deck open --name app http://localhost:3000   # the page, in Deck's browser, beside you
+deck browser errors --name app               # uncaught errors and failed requests
+deck task new 'add a dark mode toggle to settings'   # a sub-agent on its own branch
+```
+
+Agents in Deck's chats get all of this as MCP tools through `deck mcp`. Deck is MIT licensed.

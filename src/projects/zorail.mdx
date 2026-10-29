@@ -1,0 +1,45 @@
+---
+published: 2026-10-29
+description: Zorail is self-hosted disposable inboxes for organizations, with catch-all SMTP, a web dashboard, a JSON API and an MCP server in one Go binary.
+---
+
+Zorail is self-hosted disposable inboxes for organizations, a private alternative to Mailinator and temp-mail.com. It runs an SMTP sink on the organization's own infrastructure, so test mail (signup flows, OTPs, magic links, password resets) never leaves it and never lands in a public inbox anyone can read. It's built for teams that test their own products: point a staging app's email at `anything@your-zorail-domain`, then read it back programmatically.
+
+## Features
+
+- **Catch-all ingest.** Every address at the domain is a live inbox with no provisioning, over SMTP or HTTP ingest. Accepted recipient domains can be restricted.
+- **Tolerant parsing** of multipart MIME, attachments, non-UTF-8 charsets and RFC 2047 headers. Malformed mail is still stored, and the raw source is always kept.
+- **Three address modes**: disposable (catch-all, auto-expiring), reserved (a permanent address claimed by a user) and forwarding (a reserved address that re-sends each message to a verified external mailbox).
+- **Smart detection.** OTP codes, links and unsubscribe targets are extracted server-side, with a spam score and its reasons.
+- **Web dashboard** with a ⌘K command palette, one-key disposable address generation, sandboxed HTML rendering with remote images blocked by default, search and keyboard navigation.
+- **JSON API** for test suites, including a long-poll endpoint that blocks until the next message arrives.
+- **User accounts and scoped API keys** (read, manage, admin, with an optional inbox prefix), so one Zorail serves many teams.
+- **MCP server** at `/mcp`. Its `wait_for_message` tool blocks until mail arrives and returns the extracted codes and links, which makes Zorail the email step in agentic end-to-end tests.
+- **`zorail watch`**, a live three-pane terminal inbox that surfaces codes and links and copies them over SSH.
+
+## Install
+
+On macOS and Linux:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/broisnees/zorail/main/scripts/install-cli.sh | bash
+```
+
+Archives for macOS, Linux and Windows are on the GitHub releases page, and a multi-arch Docker image (`linux/amd64`, `linux/arm64`) is published to GitHub Container Registry.
+
+`zorail setup` wires a real domain's inbound mail into a localhost server through Cloudflare Email Routing, an Email Worker and a Cloudflare Tunnel, with no public IP and no open port 25:
+
+```bash
+zorail                # start the server first (setup auto-detects its port)
+zorail setup          # pick domain, paste token; preflight checks all permissions
+zorail up             # starts the server AND the Cloudflare Tunnel together
+zorail doctor         # verify the whole pipeline end-to-end (another terminal)
+```
+
+## How it works
+
+One static binary runs the SMTP server, JSON API, web UI and MCP server. Storage is pure-Go SQLite with no cgo, and the Nuxt 4 dashboard is embedded with `go:embed`, so there's no external database, separate frontend service or runtime Node. Forwarding never sends raw outbound SMTP from Zorail's own IP: messages are re-emitted verbatim through a relay or Cloudflare Email Routing, and only to verified destinations.
+
+## Status
+
+Pluggable AI providers (Claude, Mistral, Ollama) for summarizing and classifying mail are designed for but not implemented yet. Per-key rate limits and replies from forwarding aliases are next on the roadmap.

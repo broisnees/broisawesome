@@ -1,0 +1,39 @@
+---
+title: "decibel: Volume boost and EQ for the Mac menu bar"
+published: 2026-10-29
+description: Decibel is a macOS menu bar app with volume boost to 800%, a 10-band EQ and per-app volume, built on Core Audio process taps with no audio driver.
+---
+
+Decibel makes a Mac louder and better-sounding, system-wide. It sits in the menu bar and processes everything the Mac plays: boost it up to 800% without clipping, shape it with an EQ, and set every app's volume on its own. There's no kernel extension, virtual device or driver to install, and quitting it puts audio back exactly as it was.
+
+## Features
+
+- **Volume boost to 800% (+18 dB)** with an always-on look-ahead brickwall limiter (ceiling -1 dBFS), so it never clips.
+- **10-band graphic EQ** from 32 Hz to 16 kHz with a live response curve, 16 built-in presets, custom presets and reset to flat.
+- **Bass and treble** shelves at 100 Hz and 10 kHz, plus balance and stereo width.
+- **Per-app mixer**: a 0 to 200% volume slider and mute for every app using audio, with its icon and a live meter. Helper processes are grouped under their app (Safari's WebKit GPU process, Chrome's audio service), and settings are remembered per app.
+- **Now Playing**: artwork, title, artist and source app for whatever is playing, with previous, play/pause, next and a progress bar.
+- **System volume**: master output and mute synced with the volume keys, software volume for outputs macOS can't control (most HDMI and DisplayPort displays), and microphone level and mute.
+- **Devices**: every output and input, one-click switching of the default device, and sample-rate selection where supported.
+
+## Requirements
+
+macOS 14.4 or later, as a universal app for Apple silicon and Intel. It needs System Audio Recording access to process other apps' sound.
+
+## Install
+
+Download `Decibel-<version>.dmg` from the latest GitHub release, drag Decibel onto Applications and open it. It lives in the menu bar, not the Dock. Releases are code-signed but not yet notarized, so the first launch needs **Open Anyway** in System Settings › Privacy & Security, or from Terminal:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Decibel.app
+```
+
+Decibel was called Forte, and BetterSound before that. Boost, EQ, presets and per-app volumes are imported on first launch.
+
+## How it works
+
+Decibel is built on Core Audio process taps, added in macOS 14.2, which let one app capture and mute other apps' output. Each app I've adjusted gets its own tap and everything else shares one global tap. The taps feed a private aggregate device, where a single real-time IOProc runs per-app gain and mix, EQ and tone, boost, width, balance, the limiter and volume before the real output device.
+
+The DSP is plain C, so the audio thread never allocates, locks or touches the Swift runtime. Taps exist only while something is playing and an effect is on, so macOS's purple recording indicator shows only while Decibel is actually processing sound.
+
+Audio is processed in memory on the Mac, never written to disk or sent anywhere, and Decibel makes no network requests.

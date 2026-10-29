@@ -1,0 +1,48 @@
+---
+title: "claudebot: A pixel desktop pet of Clawd from Claude Code"
+published: 2026-10-29
+description: Claude Bot is a pixel desktop pet for Linux, Windows and macOS, modeled on Clawd, that acts out whatever Claude Code is doing through its hooks.
+---
+
+Claude Bot is a pixel desktop pet modeled on Clawd, the little critter from the Claude Code terminal. It lives along the bottom of the screen in a transparent window above everything else, walks around, chases the cursor, gets the zoomies and naps. Hooked up to Claude Code, it acts out whatever Claude is doing, brings in a tiny helper for every subagent, and keeps nagging until I notice that a long turn has finished.
+
+## What it does
+
+- **Acts out Claude Code.** A hard hat and a brick pile for commands, goggles and a bubbling flask for tests, a tiny laptop for edits, and a hydraulic press when the conversation compacts.
+- **Thinking styles.** Each of Claude Code's 187 spinner verbs maps to an act: Cooking gets a chef hat and a steaming pot, Pontificating climbs onto a soapbox, Vibing puts on shades and dances.
+- **Subagents** each get a mini Clawd that walks in, works with its own tiny tools, then checks off and leaves.
+- **A status line** that reads like Claude Code's own (`Running npm test`, `Done in 2m 14s`), following whichever session needs me most.
+- **Reminders.** A long turn leaves the pet holding a "done" sign until I click it, and permission prompts always send a desktop notification.
+- **Physics and play.** Drag it and it swings from the cursor; throw it and it bounces off screen edges. It plays fetch, hides behind screen edges, and shows the real local weather.
+
+## Voice assistant
+
+On Linux, Claude Bot is also my voice assistant, as a full duplex call. It reports on and hands work to the Claude Code agents in my tmux panes, drives the desktop, plays music, and remembers facts across conversations. A background coordinator approves safe permission prompts for those agents and brings the risky ones to me.
+
+## Getting started
+
+Prerequisites: Rust, Node 18+, and the Tauri system dependencies for the OS (on Linux, WebKitGTK 4.1 and libayatana-appindicator).
+
+```bash
+npm install
+npm run dev      # run it
+npm run build    # installers land in src-tauri/target/release/bundle/
+```
+
+To connect it to Claude Code, right-click the pet and tick **React to Claude Code**, or run:
+
+```bash
+claudebot --install-hooks
+```
+
+That adds hooks to `~/.claude/settings.json`, keeps a one-time backup, and leaves every other setting alone.
+
+## Platforms
+
+Linux, Windows and macOS. It roams the whole screen on Windows, macOS, X11 and Hyprland; on GNOME, KDE and sway under Wayland it wanders inside its own window.
+
+## How it works
+
+Built with Tauri 2, so the app is a few MB instead of a bundled browser. The pet itself is plain HTML, canvas and ES modules. The voice engine is a Python project running WebRTC echo cancellation, Silero VAD, whisper.cpp, a Claude Code session through the Agent SDK, and Kokoro TTS.
+
+Claude, Claude Code and Clawd belong to Anthropic. This is an unofficial fan project.
