@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "portfolio",
   "compatibility_date": "2025-04-04",
-  "main": "./workers/app.ts",
+  "main": "@tanstack/react-start/server-entry",
   "routes": [
     "nischal-dahal.com.np/*",
     "www.nischal-dahal.com.np/*",
@@ -13,6 +13,14 @@
     {
       "binding": "NEWSLETTER_KV",
       "id": "8f5b81d6febc48839c35535fa1f89a58"
+    }
+  ],
+  // Say hi: at most 5 messages a minute from one IP.
+  "ratelimits": [
+    {
+      "name": "HI_LIMIT",
+      "namespace_id": "1001",
+      "simple": { "limit": 5, "period": 60 }
     }
   ],
   "vars": {

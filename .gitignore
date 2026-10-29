@@ -3,9 +3,9 @@
 /node_modules/
 *.tsbuildinfo
 
-# React Router
-/.react-router/
-/build/
+# Build
+/dist/
+
 
 # Cloudflare
 .mf
