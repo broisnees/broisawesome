@@ -1,14 +1,20 @@
 # phobos state
 
-_generated 2026-10-06T11:47Z · git 839cb02 (feat/grid-portfolio), 2 uncommitted — a snapshot, not the source of truth. Re-verify any file or line below against the live tree before acting on it._
+_generated 2026-10-29T11:27Z · git fbc92f0 (redesign/minimal), 168 uncommitted — a snapshot, not the source of truth. Re-verify any file or line below against the live tree before acting on it._
 
 ## Working set (uncommitted)
 - .claude/phobos-activity.log
 - .claude/phobos-state.md
+- .dev.vars.example
+- .gitignore
+- README.md
+- app/.server/all-content.ts
+- app/.server/gallery/google-photos.ts
+- app/.server/gallery/shared-album.ts
 
 ## Recent activity
-edited: scratch-code.tsx · 286.4k out
-edited: scratch-code.tsx · 297k out
-edited: scratch-code.tsx · 306.8k out
-edited: commit-physics.tsx, scratch-code.tsx · 354k out
-edited: cloudflare-deploy-account.md · 81.3k out
+edited: README.md, agent-view.tsx, gallery.functions.ts, gallery.server.ts, gallery.tsx +16 more · 592.1k out
+edited: README.md, agent-view.tsx, gallery.functions.ts, gallery.server.ts, gallery.tsx +16 more · 659k out
+edited: claude-sudo.svg, phobos.svg · 73.3k out
+— context compacted (auto) —
+edited: say-hi.tsx · 137.1k out
