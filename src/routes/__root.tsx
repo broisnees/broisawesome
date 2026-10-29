@@ -6,6 +6,8 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { GitHubMark } from "~/components/brand-icons";
+import { Icon } from "~/components/icon";
 import { KathmanduTime } from "~/components/kathmandu-time";
 import { metaClass, PageHeader } from "~/components/list";
 import { SayHi } from "~/components/say-hi";
@@ -166,7 +168,18 @@ function RootDocument({ children }: { children: ReactNode }) {
                 </Link>
               ))}
             </nav>
-            <SayHi />
+            <div className="flex items-center gap-1.5">
+              <a
+                href="https://github.com/broisnees"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="GitHub"
+                className="grid size-8 place-items-center rounded-full text-muted transition-[color,background-color,scale] duration-150 ease-out hover:bg-surface-hover hover:text-fg active:scale-[0.96]"
+              >
+                <Icon icon={GitHubMark} size={17} />
+              </a>
+              <SayHi />
+            </div>
           </header>
           <main id="main" className="mt-16 sm:mt-24">
             {children}
