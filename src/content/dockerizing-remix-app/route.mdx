@@ -1,0 +1,86 @@
+---
+title: How to dockerize a Remix or React Router app with Bun
+description: A multi-stage Dockerfile that builds and runs a Remix app on Bun, plus a .dockerignore and the commands to build, run and push the image.
+published: 2024-09-06
+---
+
+[Remix](https://remix.run) is a full-stack framework that runs on both the
+server and the browser. Server-side rendering, fast page loads and smooth
+transitions come out of the box.
+
+This is how I dockerize a Remix app with [Bun](https://bun.sh) and get it ready
+for deployment.
+
+## Step 1: Create the Dockerfile
+
+Create a `Dockerfile` in the project root. It builds the app in a `build` stage
+and copies the result into a final image based on `oven/bun`.
+
+```dockerfile
+# /Dockerfile
+
+# Use Bun's lightweight image as the base
+FROM oven/bun as base
+WORKDIR /app
+ENV NODE_ENV="production"
+
+# Build stage
+FROM base as build
+RUN apt-get update -qq && \
+    apt-get install -y build-essential pkg-config python-is-python3
+
+# Install dependencies
+COPY --link package.json ./
+RUN bun install --ci
+
+# Build the Remix app
+RUN bun run build
+
+# Final stage
+COPY --link . .
+FROM base
+COPY --from=build /app /app
+
+# Expose the port and start the app
+EXPOSE 3000
+CMD ["bun", "run", "start"]
+```
+
+Bun is the big win here: it shortens build times and speeds up the app.
+
+## Step 2: Add a .dockerignore
+
+Keep the image lean by excluding files the build doesn't need. Add a
+`.dockerignore` file next to the `Dockerfile`:
+
+```sh
+# .dockerignore
+
+node_modules
+npm-debug.log
+```
+
+## Step 3: Build, run and push
+
+Build the image and run the container:
+
+```sh
+# Build the Docker image
+docker build -t nischal/bun-app .
+
+# Run the app on port 3000
+docker run -p 3000:3000 nischal/bun-app
+
+```
+
+Once the app runs, push the image to Docker Hub:
+
+```sh
+docker login
+docker push nischal/bun-app
+```
+
+That's the whole setup: Bun for speed, Docker for portability. The same image
+deploys to any platform that runs containers.
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Z8Z712ZDYP)

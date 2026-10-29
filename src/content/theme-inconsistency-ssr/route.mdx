@@ -1,0 +1,70 @@
+---
+title: Solving theme inconsistencies in React Router and Next.js
+description: Dark mode styles can break when the system theme is light. Setting the color-scheme meta tag fixes it in a Remix app with Tailwind CSS.
+published: 2023-08-10
+---
+
+The app has a theme, but the styles don't hold up: with the system color scheme
+set to `light`, switching the app to dark mode doesn't work properly.
+
+If the app doesn't have a theme yet, start with the
+[Tailwind CSS dark mode docs](https://tailwindcss.com/docs/dark-mode).
+
+The system's color scheme can interfere with the theme set in the app. With the
+system in light mode and the app in dark mode, the browser can still apply
+light mode styles unless the `color-scheme` meta tag is set explicitly, and the
+app ends up looking inconsistent.
+
+```tsx
+<meta name="color-scheme" content={theme === 'light' ? 'light' : 'dark'} />
+```
+
+The tag tells the browser which color scheme to use, so the system theme can't
+override the app's theme settings.
+
+The loader resolves the theme on the server:
+
+```tsx
+export async function loader({ request, context }: LoaderFunctionArgs) {
+	const { getTheme } = await themeSessionResolver(request);
+
+	return defer({
+		theme: getTheme(),
+	});
+}
+```
+
+The `App` component then uses it:
+
+```tsx
+export function App() {
+	const data = useLoaderData<typeof loader>();
+	const [theme] = useTheme();
+
+	return (
+		<html lang="en" className={clsx(theme)}>
+			<head>
+				<meta charSet="UTF-8" />
+				<Meta />
+				<Links />
+				<PreventFlashOnWrongTheme ssrTheme={Boolean(data.theme)} />
+			</head>
+			<body>
+				<Outlet />
+				<ScrollToTopButton />
+				<Scripts />
+			</body>
+		</html>
+	);
+}
+```
+
+This alone doesn't fix it. With the system in light mode, switching the app to
+dark still leaves the styles broken. The fix is the `color-scheme` meta tag:
+
+```tsx
+<meta name="color-scheme" content={theme === 'light' ? 'light' : 'dark'} />
+```
+
+If the app uses shadcn/ui, see the
+[shadcn/ui dark mode guide for Remix](https://ui.shadcn.com/docs/dark-mode/remix).

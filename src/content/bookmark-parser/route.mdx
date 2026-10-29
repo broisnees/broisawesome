@@ -1,0 +1,66 @@
+---
+title: How to build a simple bookmark parser
+description: Parse a browser's exported bookmarks HTML file into a list of titles and URLs with Cheerio and TypeScript.
+published: 2024-07-16
+image: /content/bookmark.png
+---
+
+This is what an exported bookmarks file looks like:
+
+![An exported bookmarks HTML file open in an editor](/content/bookmark.png)
+
+It looks like gibberish. But it's the raw material for a bigger idea: a website,
+or a service worker, that syncs bookmarks with a server and pushes them to other
+browsers so every browser has the same bookmarks.
+
+---
+
+That starts with a parser. I use [Cheerio](https://cheerio.js.org) to parse the
+HTML file.
+
+I'm writing it in TypeScript, but any language that can parse an HTML file
+works. Maybe even an HTML parser written in **C**?
+
+```tsx
+interface Bookmark {
+	title: string;
+	url: string | undefined;
+}
+```
+
+This is the `Bookmark` interface. I'm leaving out the icon in this example, but
+add it if you need it: each link in the file also carries `ICON` data and an
+`ADD_DATE`.
+
+The parser loads the file with Cheerio and collects the text and `href` of every
+`a` tag:
+
+```tsx
+export const parseBookmarks = (fileContent: string): Bookmark[] => {
+	const $ = cheerio.load(fileContent);
+
+	const bookmarks: Bookmark[] = [];
+	$('a').each((index, element) => {
+		const title = $(element).text();
+		const url = $(element).attr('href');
+		bookmarks.push({
+			title,
+			url,
+		});
+	});
+
+	return bookmarks;
+};
+```
+
+To use it, read the uploaded file's text and pass it to `parseBookmarks`:
+
+```tsx
+const file = formData.get('bmrk') as File;
+
+// const filecontent = fs.readFileSync(file, 'utf-8');
+
+const filecontent = await file.text();
+
+const parsedBookmark = parseBookmarks(filecontent);
+```

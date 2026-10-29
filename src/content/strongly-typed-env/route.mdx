@@ -1,20 +1,14 @@
 ---
-title: Typed client and server environment variables in Rv7
-description: Learn how to create and integrate strongly typed environemnt variable in react router or remix
+title: Typed client and server environment variables in React Router v7
+description: Typed, Zod-validated environment variables for the server and the browser in React Router v7 (or Remix).
 published: 2025-02-20
-featured: true
-tags: [khalti, payment, nepal, webcheckout]
-keywords: [payment, nepal, payment-gateway-nepal, khalti, epay, khalti]
-readTime: 3
-author: Nischal Dahal
---- 
+---
 
-## Introduction
+I keep environment variables typed and validated in React Router v7 and Remix
+with a small Zod setup. It starts with an `env.common.ts` file in a `misc` or
+`utils` folder.
 
-Today we are going to learn, how to create and integrate strongly typed environemnt variable in react router or remix,
-let's get started by creating the `env.common.ts` file in misc, or utils folder.
-
-Let's create the publicSchema using `zod`,
+Define the public schema with Zod:
 
 ```tsx
 // env.common.ts
@@ -25,7 +19,8 @@ const publicEnvSchema = z.object({
 });
 ```
 
-now, let's create the function makeTypedEnv, which will take the schema as an argument, and will return a function, which will take the environment variables as an argument, and will return the strongly typed environment variables.
+Next comes `makeTypedEnv`. It takes a schema and returns a function that parses
+the raw environment variables and returns them strongly typed.
 
 ```tsx
 // env.common.ts
@@ -35,9 +30,10 @@ function makeTypedEnv<T>(schema: { parse: (data: unknown) => T }) {
 }
 ```
 
-Let's create the publicEnvExpose function, and `getPublicEnvFrom` function,
+## A type-safe environment helper
 
-### Making Type-Safe Environment Helper
+Then `getPublicEnvExpose`, which parses `process.env` on the server, and
+`getPublicEnvFrom`, the parser for the public schema:
 
 ```tsx
 // env.common.ts
@@ -51,7 +47,10 @@ export function getPublicEnvExpose() {
 const getPublicEnvFrom = makeTypedEnv(publicEnvSchema);
 ```
 
-Here, we create the `getPublicEnv` function, which will take the environment variables as an argument, and will return the strongly typed environment variables.
+`getPublicEnv` returns the typed public variables on either side. On the server
+it parses `process.env`. In the browser it parses `window.PUBLIC_ENV`, and throws
+if those were never exposed. The file also exports the `PublicEnv` and
+`PrivateEnv` types.
 
 ```tsx
 // env.common.ts
@@ -74,10 +73,11 @@ function getPublicEnv() {
 export { publicEnvSchema, makeTypedEnv, getPublicEnv };
 ```
 
-Let's create the `utils.tsx` file, which will expose the public environment variables to the window object, create `PublicEnv` component which will take the public environment variables as an argument, and will expose the public environment variables to the window object.
+## Exposing public variables to the browser
 
-### Exposing Environment Variables
-
+Create `utils.tsx` with a `PublicEnv` component. It takes the public variables
+as props and writes them to `window.PUBLIC_ENV` with an inline script. The
+`declare global` block types `window.PUBLIC_ENV`.
 
 ```tsx
 // utils.tsx
@@ -104,8 +104,8 @@ declare global {
 }
 ```
 
-Now, let's add the publicEnv in the `root.tsx`
-
+Finally, return `publicEnv` from the root loader in `root.tsx` and render
+`PublicEnv` in the document:
 
 ```tsx
 // root.tsx
@@ -164,8 +164,9 @@ function Document({
 }
 ```
 
-### More you can achieve
+## Using ArkType instead
 
+The schema doesn't have to be Zod. The same idea works with ArkType:
 
 ```tsx
 // Define the environment schema using ArkType.
@@ -177,13 +178,3 @@ const envArkSchema = type({
 // // Create the environment parser for ArkType.
 const getArkEnv = makeTypedEnvironment((d) => envArkSchema.assert(d));
 ```
-
-<br/>
-
-## Conclusion
-
-
-In this article, we have learned how to create and integrate strongly typed environemnt variable in react router or remix,
-
-
-

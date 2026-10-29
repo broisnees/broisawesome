@@ -1,60 +1,40 @@
 ---
-title: Integrating esewa payment gateway | epay
-description:
-  Integrating esewa payment ( epay ) in your application with the practical
-  example and real world demo usecase
+title: Integrating the eSewa payment gateway
+description: How I integrate eSewa ePay into a Hono app, with the payment form, HMAC signature creation and response verification.
 published: 2024-09-11
-meta:
-  title: How to dockerize your remix application
-  author: Nischal Dahal
-  description:
-    Integrating esewa payment ( epay ) in your application with the practical
-    example and real world demo usecase
-  image: https://nischal-dahal.com.np/resources/og-image?title=dockerize-remix-app&description=docker-remix
-  published: 2024-09-11
-featured: true
-image: https://nischal-dahal.com.np/resources/og-image?title=dockerize-remix-app&description=docker-remix
-tags: [esewa, payment, epay]
-keywords: [payment, nepal, payment-gateway-nepal, esewa, epay, khalti]
-readTime: 3
-author: Nischal Dahal
 ---
 
-
-Let's Integrate and make payment via esewa. There are few steps to consider when
-using the esewa payment gateway integration which we will demistify in this
-article. Let's start with the practical example,
-[Live_demo](https://api.nischal-dahal.com.np/esewa) and
-[source_code](https://github.com/broisnischal/expense/blob/main/src/api/esewa.tsx),
-and docs are available on [esewa
-developer](https://developer.esewa.com.np/pages/Epay#integration).
+The eSewa payment gateway (ePay) takes a few steps to integrate. I walk through
+each one with a working example: a
+[live demo](https://api.nischal-dahal.com.np/esewa) and the
+[source code](https://github.com/broisnischal/expense/blob/main/src/api/esewa.tsx).
+eSewa's own docs are on the
+[eSewa developer site](https://developer.esewa.com.np/pages/Epay#integration).
 
 ## The stack
 
-The entire stack includes the following components:
-
-- Hono.js & Hono JSX Middleware
-- Htmx as the client-side framework.
-- eSewa ( Epay )
-- Drizzle ORM for database interactions.
-- React components for front-end rendering.
-- Tailwind CSS for styling and design
+- Hono and the Hono JSX middleware
+- htmx as the client-side framework
+- eSewa (ePay)
+- Drizzle ORM for database access
+- React components for frontend rendering
+- Tailwind CSS for styling
 - Cloudflare D1
 - Cloudflare Workers
 - Bun, Zod and more
 
-### Esewa Test Credential
+## eSewa test credentials
 
-```
+```txt
 eSewa ID: 9806800001/2/3/4/5
 Password: Nepal@123 MPIN: 1122 (for application only)
 Token:123456
 ```
 
-### Setting up Backend
+## Setting up the backend
 
-I won't be going deep in these tech stacks and more on the setup, I will focus
-more on the simple basic route, and in the payment integration flow.
+I won't go deep into the stack or the setup. I'll stick to the basic routes and
+the payment flow.
 
 ```tsx
 import { Hono } from 'hono';
@@ -64,7 +44,7 @@ import { drizzle } from 'drizzle-orm/d1';
 import Layout from '../components/layout';
 ```
 
-Now, we have imported all the required components.
+With the imports in place, set up the app with its webhook and failure routes.
 
 ```tsx
 export const secret = '8gBm/:&EnhH.1/q'; // Secret provided by Esewa
@@ -87,8 +67,8 @@ esewa.get('/failure', c =>
 );
 ```
 
-This is the webhook route where you can verify the payment, or do bunch of
-others thing that you like.
+The webhook route is the place to verify the payment or run any other logic I
+need after it completes.
 
 ```tsx
 // Display the payment form
@@ -99,10 +79,9 @@ esewa.get('/', async c => {
 });
 ```
 
-here, we have create the main route which will render the payment form, and also
-fetching the single product data from the server and passing it to client, but
-for in your real world scenario you can fetch the actual order data from your
-database.
+This is the main route. It renders the payment form, fetching a single product
+on the server and passing it to the client. In a real app, fetch the actual
+order from your database instead.
 
 ```tsx
 // Payment verification route
@@ -137,17 +116,17 @@ esewa.get('/verify', async c => {
 export default esewa;
 ```
 
-### How Payment Verification Works
+## How payment verification works
 
-After the user is redirected back to your site (via the /verify route), we check
-the validity of the payment using HMAC signatures. The server verifies the
-payment details against the eSewa signature to ensure no tampering.
+After eSewa redirects the user back to the site (through the `/verify` route), I
+check the payment with an HMAC signature. The server verifies the payment
+details against eSewa's signature to make sure nothing was tampered with.
 
-Transaction UUID is generated uniquely for each transaction. Signatures are
-created using the product and transaction details, ensuring that data hasn’t
-been modified during the process.
+Each transaction gets its own unique transaction UUID. The signature is built
+from the product and transaction details, which ensures the data wasn't modified
+along the way.
 
-So here is the simple fn for creating the signature.
+Here is the function that creates the signature:
 
 ```tsx
 import CryptoJS from 'crypto-js';
@@ -171,11 +150,10 @@ export const createSignature = (data: {
 };
 ```
 
-### Client-Side Implementation
+## Client-side implementation
 
-On the front end, we’ll render the payment form and submit the necessary data to
-the eSewa API. We will also handle generating the signature required for secure
-transactions.
+On the frontend, I render the payment form that submits the required data to the
+eSewa API, and generate the signature the transaction needs.
 
 ```tsx
 export default function Esewa({ products }: { products: ProductType }) {
@@ -260,16 +238,8 @@ export default function Esewa({ products }: { products: ProductType }) {
 }
 ```
 
-#### Status Check
+## Status check
 
-```
+```txt
 https://uat.esewa.com.np/api/epay/transaction/status/?product_code=EPAYTEST&total_amount=100&transaction_uuid=123
 ```
-
-<br />
-## Conclusion
-
-This blog has demonstrated how to integrate the eSewa payment gateway with a
-modern stack using Hono.js, Axios, and React for front-end rendering. The
-integration handles product display, secure payment processing, and transaction
-verification.

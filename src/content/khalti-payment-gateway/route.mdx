@@ -1,40 +1,30 @@
 ---
-title: Integrating khalti payment gateway | Khalti Webcheckout
-description:
-  Integrating khalti payment ( epay ) in your application with the practical
-  example and real world demo usecase
+title: Integrating the Khalti payment gateway
+description: How I integrate Khalti Web Checkout into a Hono app, from initiating a payment to verifying it with the lookup API.
 published: 2024-09-12
-featured: true
-tags: [khalti, payment, nepal, webcheckout]
-keywords: [payment, nepal, payment-gateway-nepal, khalti, epay, khalti]
-readTime: 3
-author: Nischal Dahal
 ---
 
-In this article we are going to learn integrateing making payment via khalti's
-latest e-Payment Checkout platform. There are few steps to consider when using
-the khalti payment gateway integration which we will demistify in this article.
-Let's start with the practical example,
-[Live_demo](https://api.nischal-dahal.com.np/khalti) and
-[source_code](https://github.com/broisnischal/expense/blob/main/src/api/khalti.tsx),
-and docs are available on
-[khalti developer](https://docs.khalti.com/khalti-epayment/).
+Khalti's latest ePayment platform, Khalti Web Checkout, takes a few steps to
+integrate. I walk through each one with a working example: a
+[live demo](https://api.nischal-dahal.com.np/khalti) and the
+[source code](https://github.com/broisnischal/expense/blob/main/src/api/khalti.tsx).
+Khalti's own docs are on the
+[Khalti developer site](https://docs.khalti.com/khalti-epayment/).
 
-First you need to get the secret key form the khalti test merchant panel,
-[here](https://test-admin.khalti.com/#/join/merchant), after you successfully
-signup and when you are logging in make sure that otp won't show in your actual
-mail but it is **987654**.
+First, get a secret key from the
+[Khalti test merchant panel](https://test-admin.khalti.com/#/join/merchant).
+After signing up, log in. The OTP never arrives in your inbox; use **987654**.
 
 {/* ![](/images/blog.integrating-khalti-web-payment-in-application_2024-09-14-13-00-41.png) */}
 
-now your secret key is,
+The keys look like this:
 
 ```tsx
-const khalti_secret = "key 67c1dcfe1c0a4b8db531c3f09a019cb3";
-const live_public_key = "key ded7fb10531e48ceb9c279d8a3761f01";
+const khalti_secret = "key xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+const live_public_key = "key xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 ```
 
-### Khalti Test Credential
+## Khalti test credentials
 
 ```sh
 
@@ -45,13 +35,12 @@ Test MPIN 1111
 Test OTP 987654
 ```
 
-### Setting up Backend
+## Setting up the backend
 
-If you also want to implement the esewa integration you can check my previous
-[article](/blog/integrating-esewa-payment-gateway).
+For the eSewa integration, see my
+[previous post](/writing/esewa-payment-gateway).
 
-Here is the step by step how to integrate khalti payment, we will start via
-importing the required dependencies.
+Start by importing the dependencies.
 
 ```tsx
 import { Hono } from "hono";
@@ -64,9 +53,8 @@ import { drizzle } from "drizzle-orm/d1";
 import schema from "../drizzle";
 ```
 
-I also have create some interface for you if you are a typescript lover, make
-sure you validate them before you use, it can be updated via khalti team in
-future.
+For TypeScript, these are the interfaces I use for Khalti's responses. Validate
+them before relying on them, since the Khalti team can change the API.
 
 ```tsx
 type KhaltiStatus =
@@ -104,14 +92,14 @@ export interface KhaltiPaymentLookupResponse {
 }
 ```
 
-Import your actual merchant secret key!
+Use your own merchant secret key.
 
 ```tsx
-const secret_key = "Key 05bf95cc57244045b8df5fad06748dab";
+const secret_key = "Key your_secret_key";
 ```
 
-I have initiated the payment before user clicks the pay button, you can do the
-opposite as well!
+I initiate the payment before the user clicks the pay button. Initiating it after
+the click works too.
 
 ```tsx
 const khalti = new Hono();
@@ -154,12 +142,11 @@ khalti.get("/", async (c) => {
 });
 ```
 
-here, we have create the main route which will render the payment form, and also
-fetching the single product data from the server and passing it to client, but
-for in your real world scenario you can fetch the actual order data from your
-database.
+This is the main route. It fetches a single product on the server, initiates the
+payment for it and renders the payment page. In a real app, fetch the actual
+order from your database instead.
 
-Now, we have imported all the required components.
+Next come the webhook and failure routes.
 
 ```tsx
 // Webhook route for payment verification
@@ -179,8 +166,8 @@ khalti.get("/failure", (c) =>
 );
 ```
 
-This is the webhook route where you can verify the payment, or do bunch of
-others thing that you like.
+The webhook route is the place to verify the payment or run any other logic I
+need after it completes.
 
 ```tsx
 // Payment verification route
@@ -227,27 +214,24 @@ khalti.get("/verify", async (c) => {
 });
 ```
 
-After the user completes the payment, the success response is obtained in the
-return URL specified during payment initiate. Sample of success response return
-URL.
+After the user completes the payment, the success response arrives at the return
+URL set during initiation, with these parameters:
 
-- pidx - The initial payment identifier
-- status - Status of the transaction
-- Completed - Transaction is success
-- Pending - Transaction is in pending state, request for lookup API.
-- User canceled - Transaction has been canceled by user.
-- transaction_id - The transaction identifier at Khalti
-- tidx - Same value as transaction id
-- amount - Amount paid in paisa
-- mobile - Payer KHALTI ID
-- purchase_order_id - The initial purchase_order_id provided during payment
-  initiate
-- purchase_order_name - The initial purchase_order_name provided during payment
-  initiate
-- total_amount - Same value as amount
+- `pidx`: the initial payment identifier
+- `status`: status of the transaction
+  - `Completed`: the transaction succeeded
+  - `Pending`: the transaction is pending; call the lookup API
+  - `User canceled`: the user canceled the transaction
+- `transaction_id`: the transaction identifier at Khalti
+- `tidx`: same value as `transaction_id`
+- `amount`: amount paid in paisa
+- `mobile`: the payer's Khalti ID
+- `purchase_order_id`: the `purchase_order_id` sent during initiation
+- `purchase_order_name`: the `purchase_order_name` sent during initiation
+- `total_amount`: same value as `amount`
 
-After a callback is received, You can use the pidx provided earlier, to lookup
-and reassure the payment status.
+After the callback arrives, use the `pidx` from earlier to look up the payment and
+confirm its status.
 
 ```tsx
 khalti.get("/lookup", async (c) => {
@@ -281,18 +265,15 @@ khalti.get("/lookup", async (c) => {
 export default khalti;
 ```
 
-### How Payment Verification Works
+## How payment verification works
 
-To verify a payment after receiving a callback, you can use the Payment Lookup
-API by passing the **pidx** received during the payment initiation.
+To verify a payment after the callback, call the Payment Lookup API with the
+`pidx` received during initiation.
 
-Payment Verification (Lookup)
+Endpoint: `POST /epayment/lookup/`. Pass the `Authorization` header with your
+live secret key.
 
-Endpoint: POST /epayment/lookup/
-
-You must pass the Authorization header with your Live Secret Key.
-
-Request Payload
+Request payload:
 
 ```json
 {
@@ -300,7 +281,7 @@ Request Payload
 }
 ```
 
-Response
+Response:
 
 ```json
 {
@@ -313,7 +294,7 @@ Response
 }
 ```
 
-failure
+On failure:
 
 ```json
 {
@@ -322,11 +303,10 @@ failure
 }
 ```
 
-### Client-Side Implementation
+## Client-side implementation
 
-Frontend side, We’ll render the data from the initiated payment and just have
-the button to redirect user to `payment_url` and displaying some minor
-information.
+On the frontend, I render the data from the initiated payment: a button that
+sends the user to `payment_url`, plus a few details about the order.
 
 ```tsx
 // client
@@ -366,9 +346,3 @@ export default function Khalti({ data }: { data: KhaltiPaymentInitResponse }) {
   );
 }
 ```
-
-<br />
-## Conclusion
-
-This blog has demonstrated how to integrate the Khalti Webcheckout with a modern
-stack.

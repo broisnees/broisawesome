@@ -1,0 +1,625 @@
+---
+title: Hosting modern applications in 2024
+description: A rundown of hosting options for web apps in 2024, from serverless and edge platforms to long-lived servers, cloud providers, containers, VPS and BaaS.
+published: 2024-08-11
+---
+
+The way applications get deployed keeps changing, and sticking with a single
+platform is hard. Here are the best places to host a modern application in 2024.
+
+The options include serverless, long-lived servers, cloud hosting, edge
+computing, container hosting, PaaS, VPS and dedicated hosting.
+
+## Recommendations
+
+I won't push a specific hosting platform. Instead I go through each option
+briefly, with what it's good and bad at:
+
+- Serverless functions
+- Long-lived servers
+- Cloud hosting
+- Edge computing
+- Container hosting
+- VPS
+- Dedicated hosting
+- Service models
+- Other hosts
+- Free hosting tiers
+- Hosting for AI and ML
+
+Keep the server and the database as close together as possible. This might be
+the single most important performance factor. Hosting an app on Vercel and
+having every loader and action call an API server hosted somewhere else will
+badly throttle its performance.
+
+## Serverless functions
+
+Serverless functions are a form of managed hosting where application code is
+started and stopped on demand at request time. Sometimes an entire application
+fits in a single function, or an app can be spread across many, with each
+endpoint being its own function.
+
+- Often billed by the number of requests, the time the function runs and the
+  memory it uses.
+- Can scale up to handle large amounts of traffic, and scale back down when
+  traffic returns to normal levels.
+- Often run in regular data centers, but some run on an edge network, which
+  means data centers all over the world, close to the end user.
+- Usually run Node.js, but "edge" functions run on the V8 runtime, which is very
+  fast but less widely supported.
+
+Because these functions are ephemeral, the first request to one can hit a cold
+start and take several seconds to respond. Here are the serverless platforms,
+one by one.
+
+### Cloudflare
+
+Cloudflare Pages is a hosting service like Netlify or Vercel, but built on
+Cloudflare's network. It has a Git-based deploy workflow and preview deployments
+for different branches.
+
+Static content is served from Cloudflare's CDN, and the rest of the Remix app is
+compiled into a single Cloudflare Worker on the edge. Vercel's Edge Functions are
+built on top of Cloudflare Workers, which use the V8 runtime, so they aren't
+compatible with many Node.js modules.
+
+Cloudflare also supports the `CDN-Cache-Control` header for CDN-specific cache
+settings.
+
+Cloudflare allows a request body size of 100 MB for most apps, and a higher
+limit is available on request. This is higher than any other serverless
+platform. WebSockets also work on Cloudflare, which is not common for serverless
+platforms.
+
+Supports:
+
+- Git-based deploys
+- Static assets
+- Deploy previews
+- WebSockets
+- Bundle size (25 MB)
+- Request body size (100 MB)
+- Image CDN
+- Colocated databases: SQL, KV, Blob
+
+### Vercel
+
+Vercel is a serverless hosting platform for web apps.
+
+It supports Git-based deployments and deploy previews for every branch and pull
+request, plus some fancy collaboration tools built on top.
+
+Vercel lets each page choose between a Node.js runtime and a V8 Edge runtime,
+so some pages can use Node.js functions and others V8 functions.
+
+Vercel splits each endpoint into its own function, so the 50 MB limit per
+function bundle is very hard to hit.
+
+- No WebSockets. Streaming works, but connections can only stay open for 30
+  seconds, so server-sent events aren't practical.
+- Full `Cache-Control` support, including `stale-while-revalidate`,
+  `stale-if-error` and `s-maxage`.
+- The maximum request body size is 4.5 MB, which can be a problem for direct
+  file uploads.
+
+Vercel supports several colocated databases, including Vercel Postgres, Vercel
+KV and Vercel Blob.
+
+### Netlify
+
+Netlify is the original Jamstack hosting platform. It has grown from a simple
+static site host into a full-featured serverless platform.
+
+Deployments are Git-based: every push to the repo makes Netlify build and deploy
+the app. Deploy previews make it possible to test an app before merging a pull
+request.
+
+Netlify supports both Node.js (Netlify Functions) and V8 (Netlify Edge
+Functions) as separate targets, so the whole app runs on one or the other.
+
+On Node.js, functions deploy to a region of your choice, but not to several
+regions at once. Edge Functions are always multi-region.
+
+Edge Functions also support server-sent events on Netlify.
+
+Netlify supports fine-grained cache control in a few ways:
+
+- `Cache-Tag` headers, which can invalidate specific pages or assets.
+- The `Netlify-Vary` header, which can vary cache policies on specific headers,
+  like device type, or on specific cookie values, like user sessions or A/B
+  tests.
+
+It also has Blob Storage for colocated file storage.
+
+### Fastly
+
+Fastly is a CDN and hosting platform, and it's where the Remix and React Router
+docs are hosted.
+
+Fastly supports Remix through its Compute@Edge platform, a serverless platform
+that runs on the edge and compiles TypeScript down to WebAssembly instead of
+running on V8 (like most edge functions) or Node.js (like everything else).
+
+Fastly has full `Cache-Control` support, including `stale-while-revalidate` and
+`stale-if-error`. For more control, it also offers the `Surrogate-Control`
+header for CDN-specific settings.
+
+It also has APIs to purge the cache programmatically, which is not common.
+
+Fastly supports WebSockets, which is also not common for serverless platforms.
+
+- It doesn't run Node.js, so many Node.js modules don't work with Remix on
+  Fastly. In exchange, it's the fastest runtime available right now.
+- The bundle size limit is 100 MB, measured after compilation to WASM and after
+  all compiler optimizations.
+- No Git-based deployments, but deploying from GitHub Actions is easy.
+
+Fastly also offers KV storage deployed alongside the app.
+
+### SST
+
+SST is an infrastructure-as-code framework for building serverless applications
+on AWS.
+
+SST turns infrastructure code into a series of API calls to the cloud provider.
+Behind the scenes it uses Pulumi and Terraform. The SST config describes the
+infrastructure a project needs: Lambda functions, API Gateway endpoints,
+DynamoDB tables, S3 buckets and so on.
+
+- No built-in Git-based deploys, but they're easy to set up with a GitHub Action
+  or with Seed, a deployment infrastructure tool.
+- Preview and staging environments are created with the SST CLI, which can run
+  in a GitHub Action.
+
+### Deno Deploy
+
+Deno Deploy is a solid choice for a fast, secure and easy platform to deploy
+serverless JavaScript applications. It's a global platform that runs
+JavaScript, TypeScript and WebAssembly code on managed servers close to users,
+which keeps response times and latency low. Instead of virtual machines, apps
+run on the Deno runtime on V8, which keeps deploys fast and lightweight.
+
+Includes:
+
+- Build logs
+- Build cancellation
+- Analytics
+- Data storage (built-in KV for simple persistence)
+- Edge function integrations
+- Native build plugins
+- Background functions
+- Serverless functions (API)
+- 100 GB/month of bandwidth
+
+## Long-lived servers
+
+A more traditional approach to application hosting is to run the application on
+a long-lived server. The server (or servers) keeps running and handles requests
+as they come in.
+
+- No cold starts, so the first request is as fast as any other.
+- Can cost more than serverless when traffic is low.
+- A database can run on the same server, so there's no network latency to worry
+  about.
+- Most of these platforms can also deploy managed Redis and PostgreSQL
+  databases.
+- Full access to the file system, child processes, streaming responses, deferred
+  data, server-sent events, WebSocket servers running next to the app, and more.
+
+The things I compare across them: Git-based deploys, preview environments,
+staging environments, a CDN for static assets and multi-region deployments. Here
+are the main platforms, each with a short description.
+
+### Coolify
+
+Coolify is an all-in-one PaaS for self-hosting applications, databases and
+services (like WordPress, Plausible Analytics and Ghost) without having to manage
+the servers. It's an open-source, self-hostable alternative to Heroku, Netlify
+and Vercel.
+
+- **Any language:** Launch websites, APIs, backends and more.
+- **Any server:** Deploy to any server with SSH, including a VPS or the cloud.
+- **Any use case:** Single-server, multi-server or Docker Swarm deployments.
+- **Push to deploy:** Git integration with popular platforms.
+- **Free SSL:** Automatic Let's Encrypt setup and renewal.
+- **Automatic database backups:** Back up to any S3-compatible storage.
+- **Webhooks:** CI/CD pipeline integration with custom tools.
+- **PR deployments:** Automatic deploys for commits and pull requests.
+- **Server automations:** Automate server tasks.
+- **Monitoring:** Track deployments and servers, and get alerts.
+- **Notifications:** Alerts through Discord, Telegram and email.
+
+### Fly.io
+
+Fly.io is a managed container platform that runs on the edge: not serverless
+functions, but serverless virtual machines.
+
+One of Fly's biggest advantages is multi-region support. An app can deploy to
+any of Fly's 20+ regions, and Fly automatically replicates it to every region it
+deploys to. That puts the app closer to its users and makes it more resilient to
+outages.
+
+- No built-in Git-based deployments, but they're easy to set up in GitHub
+  Actions.
+- No preview environments, though FlyCD adds automatic preview environments on
+  Fly.io.
+- 8 GB limit on uncompressed Docker images.
+- 10 MB request body buffer, but larger bodies work if they're streamed.
+
+### Heroku
+
+Heroku, arguably the most popular of them all, is a container-based cloud
+platform as a service (PaaS). It's flexible and easy to use for deploying,
+managing and scaling modern apps.
+
+Key features:
+
+- Build and deploy.
+- **Private Spaces:** An isolated network and dedicated runtime environments for
+  more privacy, power and performance.
+- Detailed access controls that give managers control and make sure users have
+  the access they need.
+- **SSO:** Works with identity providers such as Salesforce Identity, Okta,
+  PingOne, Microsoft Active Directory and PingFederate to manage developer access
+  and authorization.
+- A single dashboard for managing teams, resources and performance across
+  stages of development.
+- Enterprise-grade support with responsive SLAs, plus expert help with scaling,
+  application architecture design and white-glove onboarding.
+
+### Render
+
+Render is a managed hosting platform that runs Remix without Docker, though an
+app can still be packaged as a Docker image when it has special dependencies to
+install.
+
+Render supports Git-based deployments: push code to the repo and Render deploys
+it. Preview environments are available on Team plans.
+
+- No multi-region support like Fly.io's.
+- No request body size limit.
+- Render doesn't seem to publish its bundle or image size limits.
+
+### Railway
+
+Railway is a managed container hosting platform. A Dockerfile is optional:
+without one, Railway still deploys the app.
+
+Railway supports Git-based deployments: push code to the repo and Railway
+deploys it. Preview environments are available on Team plans.
+
+Railway has built-in support for PostgreSQL, MySQL, Redis and MongoDB, with a web
+UI to manage them.
+
+- Deploys to different continental regions, but no multi-region support like
+  Fly.io's.
+- No automatic preview environments, but staging environments are easy to set
+  up.
+
+### DigitalOcean
+
+DigitalOcean App Platform is a managed container hosting platform. A Dockerfile
+is optional: without one, DigitalOcean still deploys the app.
+
+DigitalOcean supports Git-based deployments and also offers a GitHub Action for
+more advanced deployment workflows.
+
+- PostgreSQL, MySQL, Redis and MongoDB databases can be deployed from the
+  DigitalOcean web console alongside the application.
+- No automatic preview environments or built-in staging environments.
+
+### Layer0
+
+Layer0 is built for developers who want to build and deploy high-performance
+websites and apps without much effort. It optimizes both static and dynamic
+content delivery through edge computing, with fast load times and integrations
+for frameworks like Next.js and Nuxt.
+
+## Cloud hosting
+
+Cloud hosting runs an application on a network of virtual servers in the cloud,
+which makes it flexible and scalable. It's the go-to choice for most modern
+applications.
+
+- **Scalability:** Scale up or down with traffic, with load balancers spreading
+  it across multiple instances.
+- **Cost-effective:** Pay only for the resources used, which suits startups and
+  growing businesses.
+- **Reliability:** High uptime guarantees with built-in redundancy and failover.
+- **Managed services:** Many cloud providers offer managed databases, caching
+  and other infrastructure, so there's less to manage by hand.
+
+Popular platforms: AWS, Google Cloud, Azure and others.
+
+| Feature                  | AWS                                     | Google Cloud                            | Azure                                                    |
+| ------------------------ | --------------------------------------- | --------------------------------------- | -------------------------------------------------------- |
+| **Compute services**     | EC2, Lambda, ECS, EKS                   | Compute Engine, Cloud Functions, GKE    | Virtual Machines, Azure Functions, AKS                   |
+| **Storage**              | S3, EBS, Glacier                        | Cloud Storage, Persistent Disks         | Blob Storage, Disk Storage                               |
+| **Database**             | RDS, DynamoDB, Aurora                   | Cloud SQL, Firestore, Bigtable          | SQL Database, Cosmos DB                                  |
+| **AI/ML services**       | SageMaker, Rekognition                  | Vertex AI, AutoML                       | Azure AI, Machine Learning                               |
+| **Networking**           | VPC, CloudFront, Route 53               | VPC, Cloud CDN, Cloud DNS               | Virtual Network, Front Door, DNS                         |
+| **Security**             | IAM, KMS, Shield, GuardDuty             | IAM, Cloud KMS, Security Command Center | IAM, Key Vault, Security Center                          |
+| **DevOps tools**         | CodeBuild, CodePipeline, CloudFormation | Cloud Build, Cloud Deployment Manager   | Azure DevOps, ARM Templates                              |
+| **Container services**   | EKS, ECS, Fargate                       | GKE, Cloud Run                          | AKS, ACI                                                 |
+| **Serverless**           | Lambda                                  | Cloud Functions                         | Azure Functions                                          |
+| **Data analytics**       | Redshift, Athena, EMR                   | BigQuery, Dataflow                      | Synapse Analytics, HDInsight                             |
+| **Content delivery**     | CloudFront                              | Cloud CDN                               | Azure CDN                                                |
+| **Global reach**         | Extensive global presence               | Extensive global presence               | Extensive global presence                                |
+| **Hybrid cloud support** | Outposts, Wavelength                    | Anthos                                  | Azure Arc                                                |
+| **IoT services**         | IoT Core, Greengrass                    | IoT Core                                | IoT Hub                                                  |
+| **Compliance**           | Extensive compliance portfolio          | Extensive compliance portfolio          | Extensive compliance portfolio                           |
+| **Pricing model**        | Pay-as-you-go, Reserved Instances       | Pay-as-you-go, Sustained Use Discounts  | Pay-as-you-go, Reserved Instances                        |
+| **Support**              | Basic, Developer, Business, Enterprise  | Basic, Developer, Production            | Basic, Developer, Standard, Professional Direct, Premier |
+
+## Edge computing
+
+Edge computing is a form of cloud hosting that brings compute closer to the
+user, running the application on servers near the end user instead of in one
+centralized data center.
+
+- **Low latency:** Processing data close to where it's generated cuts latency
+  significantly, which makes it ideal for real-time applications.
+- **Distributed architecture:** A network of micro data centers improves
+  reliability and fault tolerance.
+- **Data security:** Sensitive data can be processed locally, with less exposure
+  to centralized servers and less risk.
+
+Popular platforms: Cloudflare Workers, Vercel Edge Functions and AWS
+Lambda@Edge.
+
+| Feature            | Cloudflare Workers                  | Vercel Edge Functions      | AWS Lambda@Edge            |
+| ------------------ | ----------------------------------- | -------------------------- | -------------------------- |
+| **Runtime**        | V8 (WASM)                           | V8                         | Node.js                    |
+| **Deployment**     | Instant global deployment           | Global deployment with Git | Integrated with CloudFront |
+| **Cold start**     | Extremely low                       | Low                        | Can be higher              |
+| **Use case**       | Lightweight edge functions          | Serverless at the edge     | Compute at the edge        |
+| **Pricing**        | Free tier available                 | Free tier with limits      | Pay-per-use                |
+| **Scaling**        | Auto-scaling                        | Auto-scaling               | Auto-scaling               |
+| **Integrations**   | Durable Objects, KV Store           | Vercel Platform, Next.js   | AWS Services, S3           |
+| **Ideal for**      | High-performance APIs, static sites | Dynamic content, SSR       | Content delivery, caching  |
+| **Edge locations** | 300+ cities worldwide               | Global                     | 200+ locations             |
+
+## Container hosting
+
+Container hosting runs applications in isolated environments. A container
+bundles an application with all its dependencies, so it performs the same in
+every environment. Like edge computing, it's a form of cloud hosting.
+
+- **Portability:** Containers run consistently on any environment that supports
+  them, from local development to production.
+- **Resource efficiency:** Containers share the host system's resources, so
+  they're lighter and start faster than virtual machines.
+- **Microservices-friendly:** Containers fit microservices well, since each
+  service runs in its own isolated environment.
+- **Orchestration:** Tools like Kubernetes handle deploying, scaling and
+  managing containerized applications, which automates much of the operations
+  work.
+
+Popular platforms: Docker, Kubernetes, Google Kubernetes Engine (GKE) and Amazon
+Elastic Kubernetes Service (EKS).
+
+## VPS (virtual private server)
+
+A VPS is a dedicated slice of a physical server. It gives more control and
+customization than shared hosting and costs less than a dedicated server.
+
+- **Dedicated resources:** Guaranteed CPU, RAM and storage, so performance stays
+  consistent.
+- **Full control:** Root access to install custom software, configure the
+  environment and manage security settings.
+- **Scalability:** Upgrade the plan as the application needs more resources.
+- **Cost:** A VPS is often cheaper than cloud hosting for steady, predictable
+  workloads.
+
+Popular platforms: DigitalOcean, Linode, Vultr and AWS Lightsail.
+
+## Dedicated hosting
+
+Dedicated hosting gives the application a whole physical server to itself. It
+offers the highest level of performance, control and security, which suits
+large, resource-intensive applications.
+
+- **Maximum performance:** Nothing is shared, so the app gets the full power of
+  the server, which is ideal for high-traffic websites and applications.
+- **Full control:** Complete control over the server environment, including the
+  OS, hardware and software stack.
+- **Security:** Dedicated servers are the most secure option, since no other
+  tenants share the machine.
+
+Popular platforms: Bluehost Dedicated, HostGator Dedicated and OVHcloud.
+
+## Service models
+
+### Platform as a service (PaaS)
+
+PaaS provides a complete platform for developing, running and managing
+applications without dealing with the underlying infrastructure, so developers
+can focus on writing code.
+
+- **Simple deploys:** Minimal configuration, often just a `git push`.
+- **Integrated services:** PaaS platforms usually include databases, caching and
+  CI/CD pipelines.
+- **Auto-scaling:** Resources adjust to the application's traffic, which keeps
+  availability and performance high.
+- **Development speed:** Fast development and deploy cycles, ideal for startups
+  and agile teams.
+
+Popular platforms: Heroku, Vercel, Render, Netlify and Firebase.
+
+### Function as a service (FaaS)
+
+FaaS is a function-based platform for developing, running and managing
+applications, again without dealing with the underlying infrastructure.
+
+**Best for:** Event-driven applications and microservices that need minimal
+overhead.
+
+**Examples:** AWS Lambda, Azure Functions and Google Cloud Functions.
+
+### Infrastructure as a service (IaaS)
+
+**Best for:** Full control over virtualized computing resources, ideal for
+custom environments and high scalability.
+
+**Examples:** Amazon EC2, Google Compute Engine and Azure Virtual Machines.
+
+### Backend as a service (BaaS)
+
+**Best for:** Mobile and web apps that need backend services like
+authentication, databases and storage.
+
+**Examples:** Firebase, Supabase, AWS Amplify and Back4App.
+
+#### Supabase
+
+Supabase is an open-source backend platform, mostly seen as an alternative to
+Firebase without Firebase's vendor lock-in and closed source.
+
+It keeps getting more popular thanks to its clean interface and affordable
+pricing.
+
+The free tier includes 5 GB of bandwidth, 1 GB of file storage and unmetered API
+requests. The Pro plan costs $25/month for 250 GB of bandwidth and 100 GB of
+file storage.
+
+Key features:
+
+- **Auth:** A fully integrated, open-source user management system, and one of
+  the main reasons to use Supabase. It supports enterprise logins for businesses
+  and social sign-up for individuals.
+- **Database:** A portable, built-in PostgreSQL database to store and extend
+  data.
+- **Storage:** Stores any kind of content, and every stored file, videos
+  included, can be previewed inside Supabase.
+- **Realtime:** Makes real-time apps easy to build, like multiplayer games,
+  location sharing, shared whiteboards and in-app chat, on mobile and web.
+
+#### Backendless
+
+Backendless is a mobile app backend host that works with little or no code.
+
+It's a low-code/no-code BaaS that serves SQL and NoSQL data in real time, and its
+interface makes it easy to customize data and build functions.
+
+For a highly scalable, high-performance mobile backend, Backendless is a good
+pick. Its drag-and-drop tools make it quick to add instances as an app gains
+users.
+
+The free plan includes 1 GB of file storage, 50 API requests per minute, 1 MB of
+cloud code deployment and 10 database tables.
+
+The Pro plan starts at $15/month for 100 database tables, 20 MB of cloud code
+deployment, unmetered API requests and 10 GB of file storage.
+
+- **Database:** Works with both NoSQL and SQL data structures, and has a visual
+  database dashboard that needs no code for configuration or API connections.
+- **Pub/sub messaging:** The Publishing and Subscription APIs deliver backend
+  messages to app users. Users have to be subscribed to get notifications in
+  real time.
+- **Codeless:** A complete visual environment for building cloud code logic,
+  with timers, API services and event handlers.
+- **User management:** Stores user data and handles authorization, with APIs to
+  manage passwords, verify emails and change user roles.
+
+### Container as a service (CaaS)
+
+**Best for:** Deploying and managing containers, with orchestration features for
+scalability.
+
+**Examples:** AWS Fargate, Google Kubernetes Engine (GKE) and Azure Kubernetes
+Service (AKS).
+
+## Other hosts
+
+- PartyKit is a framework for building collaborative apps on Cloudflare
+  infrastructure. Its Remix starter uses a custom server so the Remix app and the
+  WebSocket server deploy to Cloudflare together.
+- AWS Fargate is a managed container platform for running an app in a container
+  on AWS. It's the equivalent of Fly.io, Render or Railway, but running directly
+  in AWS.
+- Arc is a serverless framework for deploying apps to AWS Lambda.
+- GitHub Pages is a platform for hosting static websites.
+- Azure Static Web Apps
+
+## Free hosting tiers
+
+- AWS Free Tier
+- GoogieHost
+- Vultr
+- InfinityFree
+- Freehostia
+- 000webhost
+- AwardSpace
+- serv00.com
+
+## Hosting for AI and ML
+
+- Google Cloud AI Platform
+- Amazon SageMaker
+- Microsoft Azure Machine Learning
+- IBM Watson AI
+- Kaggle Kernels
+- Paperspace Gradient
+- Hugging Face
+- Run:ai
+
+## Links for each platform
+
+- [Cloudflare](https://www.cloudflare.com/)
+- [Vercel](https://vercel.com/)
+- [Netlify](https://www.netlify.com/)
+- [Fastly](https://www.fastly.com/)
+- [SST](https://serverless-stack.com/)
+- [Deno Deploy](https://deno.com/deploy)
+- [Coolify](https://coolify.io/)
+- [Fly.io](https://fly.io/)
+- [Heroku](https://www.heroku.com/)
+- [Render](https://render.com/)
+- [Railway](https://railway.app/)
+- [DigitalOcean](https://www.digitalocean.com/)
+- [Layer0](https://layer0.co/)
+- [AWS](https://aws.amazon.com/)
+- [Google Cloud](https://cloud.google.com/)
+- [Azure](https://azure.microsoft.com/)
+- [Vercel Edge Functions](https://vercel.com/edge-functions)
+- [AWS Lambda](https://aws.amazon.com/lambda/)
+- [Google Kubernetes Engine](https://cloud.google.com/kubernetes-engine)
+- [Amazon Elastic Kubernetes Service](https://aws.amazon.com/eks/)
+- [Linode](https://www.linode.com/)
+- [Vultr](https://www.vultr.com/)
+- [AWS Lightsail](https://aws.amazon.com/lightsail/)
+- [Bluehost](https://www.bluehost.com/)
+- [Firebase](https://firebase.google.com/)
+- [Back4App](https://back4app.com/)
+- [Supabase](https://supabase.com/)
+- [PartyKit](https://partykit.io/)
+- [AWS Fargate](https://aws.amazon.com/fargate/)
+- [Arc](https://arc.codes/)
+- [GitHub Pages](https://pages.github.com/)
+- [Azure Static Web Apps](https://azure.microsoft.com/services/app-service/static/)
+- [serv00.com](https://serv00.com/)
+- [AwardSpace](https://www.awardspace.com/)
+- [Run:ai](https://run.ai/)
+- [Hugging Face](https://huggingface.co/)
+- [Backendless](https://backendless.com/)
+- [Zeabur](https://zeabur.com/)
+
+## References
+
+- https://supabase.com/blog/where-to-host-your-modern-applications
+- https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html
+- https://bejamas.io/hub/hosting/aws-amplify
+- https://blog.back4app.com/mobile-app-hosting/
+- https://docs.deno.com/
+
+## Choosing a platform
+
+Hosting a modern application can be daunting, but platforms like Supabase, AWS
+Amplify and Backendless add more options. Each has its pros and cons, and the
+best choice depends on the project's needs.
+
+Whether you want a no-code tool, a fully managed platform or something highly
+scalable, there's an option for it.
+
+What matters most: pick a platform that fits your business goals and that you
+can maintain and scale over time.

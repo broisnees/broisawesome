@@ -1,0 +1,81 @@
+---
+title: How to add Google Analytics to a Remix or React Router app
+description: Add the Google Analytics (GA4) gtag.js snippet to the root component of a Remix or React Router app with dangerouslySetInnerHTML.
+published: 2024-08-09
+---
+
+Adding Google Analytics to a Remix app lets me track how people use it. Setup
+takes a tracking ID and two script tags in the root component.
+
+## 1. Get a tracking ID
+
+Sign in to [Google Analytics](https://analytics.google.com/) and create a
+property if there isn't one yet. The property comes with a tracking ID (for GA4
+it usually starts with `G-`).
+
+## 2. Add the script to the root component
+
+In Remix, the Google Analytics script goes straight into `root.tsx` (or
+`root.jsx`). The inline part looks like this:
+
+```tsx
+<script
+	dangerouslySetInnerHTML={{
+		__html: ` window.dataLayer = window.dataLayer || [];
+		function gtag(){dataLayer.push(arguments);}
+		gtag('js', new Date());
+
+		gtag('config', 'G-GTAGID');`,
+	}}
+/>
+```
+
+Remix is a React framework and renders JSX, so an inline script has to go
+through `dangerouslySetInnerHTML`.
+
+Here is the full root component, with the `gtag.js` loader and the inline config
+in the `<head>`:
+
+```tsx
+// root.tsx or root.jsx
+
+import { Links, Meta, Outlet, Scripts } from 'react-router';
+
+export default function App() {
+	return (
+		<html lang="en">
+			<head>
+				<Meta />
+				<Links />
+				{/* Google Analytics Script */}
+				<script
+					async
+					src={`https://www.googletagmanager.com/gtag/js?id=ID`}
+				></script>
+				<script
+					dangerouslySetInnerHTML={{
+						__html: `
+                            window.dataLayer = window.dataLayer || [];
+                            function gtag(){dataLayer.push(arguments);}
+                            gtag('js', new Date());
+                            gtag('config', 'YOUR_TRACKING_ID', {
+                            page_path: window.location.pathname,
+                            });
+                        `,
+					}}
+				/>
+			</head>
+			<body>
+				<Outlet />
+				<Scripts />
+			</body>
+		</html>
+	);
+}
+```
+
+Replace `G-GTAGID`, `ID` and `YOUR_TRACKING_ID` with the tracking ID from step 1.
+
+Put these scripts after `<Meta />` and `<Links />`. The CSS download matters more
+for First Contentful Paint (FCP), so it should start first. The exception is a
+site where Google Tag Manager makes changes to the page.
