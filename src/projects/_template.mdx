@@ -1,0 +1,40 @@
+---
+published: 2026-01-01
+# For search. Quote any value with a colon in it.
+description: "One or two sentences, about 150 characters."
+# Optional: a shorter search title when "name: one-liner" runs past ~60 characters.
+# title: "name: what it is, in a few words"
+---
+
+{/*
+  Copy this file to src/projects/<slug>.mdx, where <slug> is the project's
+  slug (or name) in src/lib/site.ts: stroke.mdx, zorail.mdx, phobos.mdx...
+  The header (name, description, Visit/GitHub links, stars) comes from site.ts;
+  this file is the write-up under it. Set `published` to the day it goes up.
+  Until a write-up exists the page shows a short note and stays out of search.
+  Files starting with "_" are never shown.
+*/}
+
+import { Counter } from "~/components/demos/counter";
+
+## Why I built it
+
+What was missing, and who it's for.
+
+## How it works
+
+Code blocks get a language label and a copy button:
+
+```ts
+export function hello(name: string) {
+  return `Hello, ${name}`;
+}
+```
+
+<Callout title="Callouts">Work anywhere in MDX without an import.</Callout>
+
+Interactive pieces are plain React components, imported at the top:
+
+<Counter />
+
+## What I learned
