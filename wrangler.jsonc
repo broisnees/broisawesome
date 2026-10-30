@@ -35,7 +35,7 @@
     "YOUTUBE_REFRESH_TOKEN": "",
     "GOOGLE_PHOTOS_ALBUM_ID": "",
     "GOOGLE_PHOTOS_REFRESH_TOKEN": "",
-    "LOG_JSON_URL": "https://raw.githubusercontent.com/broisnischal/broisawesome/main/public/log-content.json",
+    "LOG_JSON_URL": "https://raw.githubusercontent.com/broisnees/nischaldahal/main/public/log-content.json",
     "GITHUB_USERNAME": "broisnischal",
     // GITHUB_TOKEN is a secret (wrangler secret put GITHUB_TOKEN), not a var:
     // a var with the same name would clash with it.
