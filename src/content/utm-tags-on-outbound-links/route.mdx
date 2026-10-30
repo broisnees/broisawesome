@@ -1,0 +1,122 @@
+---
+title: Tagging outbound links at click time
+description: One delegated listener that adds ref and UTM parameters to every external link on my site, only when someone actually uses the link.
+published: 2026-10-30
+---
+
+My site links out to my own products: [stroke.click](/projects/stroke),
+[eWiz](/projects/ewiz), [discerns](/projects/discerns) and others.
+I wanted those sites' analytics to show where a visitor came from, so every
+outbound link should carry `ref` and UTM parameters:
+
+```txt
+https://stroke.click/?ref=nischal-dahal.com.np&utm_source=nischal-dahal.com.np&utm_medium=referral&utm_content=%2F
+```
+
+The links live in a lot of places: a config file of projects, the header, the
+about page, and the Markdown of every post. Rewriting each one at render time
+would mean touching all of them and remembering for every new link. I tag them
+in one place instead, at the moment they're used.
+
+## Building the URL
+
+```ts
+// src/lib/outbound.ts
+
+const REF = new URL(SITE_URL).hostname;
+
+export function tagOutbound(href: string, page: string) {
+  const url = new URL(href);
+  const params = {
+    ref: REF,
+    utm_source: REF,
+    utm_medium: "referral",
+    utm_content: page,
+  };
+  for (const [key, value] of Object.entries(params)) {
+    if (!url.searchParams.has(key)) url.searchParams.set(key, value);
+  }
+  return url.toString();
+}
+```
+
+`utm_content` is the path of the page the click came from, so I can tell a
+click on the home page from one inside a post. A parameter already on the link
+wins: if I hand-tag a link for a campaign, the default doesn't overwrite it.
+
+## Tagging on use
+
+One capturing listener on `document` covers every link, including the ones MDX
+renders inside posts:
+
+```ts
+// src/lib/outbound.ts
+
+export function useOutboundTags() {
+  useEffect(() => {
+    const tag = (event: Event) => {
+      const link = (event.target as Element | null)?.closest?.("a[href]");
+      if (!(link instanceof HTMLAnchorElement)) return;
+      if (!/^https?:$/.test(link.protocol)) return;
+      if (link.origin === location.origin) return;
+      link.href = tagOutbound(link.href, location.pathname);
+    };
+    const events = ["click", "auxclick", "contextmenu"] as const;
+    for (const type of events) document.addEventListener(type, tag, true);
+    return () => {
+      for (const type of events) document.removeEventListener(type, tag, true);
+    };
+  }, []);
+}
+```
+
+The root layout calls `useOutboundTags()` once.
+
+The three events cover the ways people actually open links:
+
+- **`click`** for a normal click, cmd or ctrl click, and Enter on a focused link
+  (keyboard activation fires `click` too).
+- **`auxclick`** for a middle click into a new tab.
+- **`contextmenu`** so "Copy link" and "Open in new tab" from the right-click
+  menu get the tagged URL.
+
+Changing `href` inside the listener works because the browser follows the link
+as the default action after the event has gone through every listener. Listening
+in the capture phase (`true`) means it runs before any handler on the link
+itself, so a component that stops the event doesn't skip the tag.
+
+Tagging late has a side effect I like: the server-rendered HTML stays clean, and
+the URL preview in the corner of the browser shows the plain link on hover.
+
+## Don't throw the referrer away
+
+While I was in there I found `rel="noreferrer"` on my external links. That
+strips the `Referer` header, which is the other half of the attribution I
+wanted. For links opened with `target="_blank"`, `rel="noopener"` alone stops
+the new page from reaching back into mine, and modern browsers imply it anyway.
+
+ESLint's `react/jsx-no-target-blank` rule flags `noopener` without
+`noreferrer`. It has an option for exactly this:
+
+```ts
+// eslint.config.ts
+
+"react/jsx-no-target-blank": ["error", { allowReferrer: true }],
+```
+
+## Counting the clicks too
+
+The same listener reports each click to PostHog. Because the second click on a
+link sees the already tagged URL, I keep the original in a data attribute:
+
+```ts
+link.dataset.href ??= link.href;
+if (event.type !== "contextmenu") {
+  track("outbound_link_clicked", {
+    url: link.dataset.href,
+    host: link.hostname,
+  });
+}
+```
+
+Opening the context menu isn't a click, so it gets tagged but not counted.
