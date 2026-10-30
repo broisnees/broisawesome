@@ -88,7 +88,7 @@ export const mdxComponents: MDXComponents = {
   img: (props) => <img loading="lazy" decoding="async" {...props} />,
   a: ({ href = "", ...props }) =>
     /^https?:/.test(href) ? (
-      <a href={href} rel="noreferrer" {...props} />
+      <a href={href} target="_blank" rel="noopener" {...props} />
     ) : (
       <a href={href} {...props} />
     ),

@@ -30,6 +30,8 @@ export default defineConfig([
     },
     rules: {
       "react/react-in-jsx-scope": "off",
+      // External links keep the referrer on purpose (outbound attribution).
+      "react/jsx-no-target-blank": ["error", { allowReferrer: true }],
       "prettier/prettier": "error",
     },
   },

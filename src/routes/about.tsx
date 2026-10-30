@@ -199,7 +199,7 @@ function Timeline() {
                     <a
                       href={product.href}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener"
                       className="group inline-flex h-8 items-center gap-2 rounded-full bg-surface pr-3 pl-1 text-sm text-fg shadow-hairline-inset transition-[background-color] duration-150 ease-out hover:bg-surface-hover"
                     >
                       <span className="grid size-6 place-items-center overflow-hidden rounded-full bg-white">

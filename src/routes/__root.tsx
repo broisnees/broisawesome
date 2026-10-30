@@ -14,6 +14,7 @@ import { metaClass, PageHeader } from "~/components/list";
 import { SayHi } from "~/components/say-hi";
 import { ThemeSwitch } from "~/components/theme-switch";
 import { SITE_URL } from "~/lib/seo";
+import { useOutboundTags } from "~/lib/outbound";
 import { getTheme, type Theme } from "~/lib/theme.functions";
 import appCss from "~/styles.css?url";
 // Same file the stylesheet uses, so the preload is the one the text needs.
@@ -129,6 +130,7 @@ const NAV = [
 function RootDocument({ children }: { children: ReactNode }) {
   // Undefined when the root itself errored; fall back to following the OS.
   const theme = Route.useLoaderData()?.theme ?? "system";
+  useOutboundTags();
 
   return (
     <html
@@ -183,7 +185,7 @@ function RootDocument({ children }: { children: ReactNode }) {
                 <a
                   href="https://github.com/broisnees"
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener"
                   aria-label="GitHub"
                   className="grid size-8 place-items-center rounded-full text-muted transition-[color,background-color,scale] duration-150 ease-out hover:bg-surface-hover hover:text-fg active:scale-[0.96]"
                 >
