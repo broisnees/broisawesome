@@ -2,6 +2,7 @@ import { ArrowRight02Icon } from "@hugeicons/core-free-icons";
 import { Link } from "@tanstack/react-router";
 import type { IconSvgElement } from "@hugeicons/react";
 import type { ReactNode } from "react";
+import { cn } from "~/lib/utils";
 import { Icon } from "./icon";
 
 /** Self-hosted (96px) so the byline never waits on a third-party host. */
@@ -39,9 +40,20 @@ export function PageHeader({
 }
 
 /** Avatar, name, then any facts about the page. */
-export function Byline({ children }: { children?: ReactNode }) {
+export function Byline({
+  children,
+  className,
+}: {
+  children?: ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="mt-6 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-muted">
+    <div
+      className={cn(
+        "mt-6 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-muted",
+        className,
+      )}
+    >
       <img
         src={AVATAR}
         alt=""
@@ -49,7 +61,8 @@ export function Byline({ children }: { children?: ReactNode }) {
         height={22}
         className="size-[22px] rounded-full outline-1 -outline-offset-1 outline-(--image-outline)"
       />
-      <span className="text-sm text-fg">Nischal Dahal</span>
+      {/* The site header already names me on phones; skip it so facts stay on one line. */}
+      <span className="hidden text-sm text-fg sm:inline">Nischal Dahal</span>
       {children}
     </div>
   );

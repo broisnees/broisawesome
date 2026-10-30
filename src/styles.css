@@ -495,64 +495,6 @@
   }
 }
 
-/* Agent mode: the Markdown source as a plain document with a faint line gutter. */
-.agent-source {
-  counter-reset: line;
-  margin-top: 1.75rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--hairline);
-  max-height: 24rem;
-  overflow: hidden;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  line-height: 1.8;
-  color: var(--text);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  mask-image: linear-gradient(to bottom, black 55%, transparent);
-}
-
-.agent-source-open {
-  max-height: none;
-  mask-image: none;
-}
-
-.md-line {
-  display: block;
-  position: relative;
-  padding-left: 2.75rem;
-
-  &::before {
-    counter-increment: line;
-    content: counter(line);
-    position: absolute;
-    left: 0;
-    width: 1.75rem;
-    text-align: right;
-    color: var(--faint);
-    user-select: none;
-  }
-}
-
-.md-heading {
-  color: var(--fg);
-  font-weight: 600;
-}
-
-.md-quote {
-  color: var(--accent);
-}
-
-.md-list {
-  color: var(--text);
-}
-
-.md-code,
-.md-fence,
-.md-meta {
-  color: var(--muted);
-}
-
 /* <Callout> in MDX: a quiet aside with an accent edge. */
 .post .callout {
   border-radius: 12px;

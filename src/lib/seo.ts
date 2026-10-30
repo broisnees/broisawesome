@@ -9,8 +9,8 @@ export function absolute(path: string) {
   return new URL(path, SITE_URL).href;
 }
 
-/** A post's canonical URL: the formatted article, not agent mode's Markdown. */
-export const readPath = (slug: string) => `/writing/${slug}?mode=read`;
+/** A post's canonical URL. */
+export const readPath = (slug: string) => `/writing/${slug}`;
 
 type Seo = {
   /** Page name; the site name is appended. Omit on the home page. */
