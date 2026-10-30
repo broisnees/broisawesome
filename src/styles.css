@@ -515,6 +515,125 @@
   font-weight: 575;
 }
 
+/* Safis figures (@safis/react) in my palette and type. The canvas reads these
+   as plain colors, so each theme gets literal values, not light-dark(). */
+.post .safis {
+  --bg: #ffffff;
+  --ink: #0a0a0b;
+  --muted: #64686f;
+  --faint: #c4c8cf;
+  --grid: #f0f1f3;
+  --rule: #e4e6ea;
+  --brass: #b5502f;
+  --font-text: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-text);
+  --font-display: var(--font-text);
+  --font-mono: "Geist Mono Variable", ui-monospace, Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .post .safis {
+    --bg: #000000;
+    --ink: #fafafa;
+    --muted: #8b8f97;
+    --faint: #3a3d43;
+    --grid: #121315;
+    --rule: #1e1f22;
+    --brass: #d97757;
+  }
+}
+
+:root[data-theme="dark"] .post .safis {
+  --bg: #000000;
+  --ink: #fafafa;
+  --muted: #8b8f97;
+  --faint: #3a3d43;
+  --grid: #121315;
+  --rule: #1e1f22;
+  --brass: #d97757;
+}
+
+/* Safis prose controls (<Scrub>, <SetLink>, <Term>) live in my own prose,
+   outside any .safis element, so they get the same look here. */
+.post {
+  --c-red: light-dark(#d22d2d, #f47272);
+  --c-green: light-dark(#18793e, #4fd185);
+  --c-blue: light-dark(#2457d6, #6aa5ff);
+  --c-purple: light-dark(#7438e0, #ac8cff);
+  --c-brass: var(--accent);
+
+  & .c-red {
+    --c: var(--c-red);
+  }
+  & .c-green {
+    --c: var(--c-green);
+  }
+  & .c-blue {
+    --c: var(--c-blue);
+  }
+  & .c-purple {
+    --c: var(--c-purple);
+  }
+  & .c-brass {
+    --c: var(--c-brass);
+  }
+  & :is(.c-red, .c-green, .c-blue, .c-purple, .c-brass) {
+    color: var(--c);
+    font-weight: 550;
+  }
+  & [data-part] {
+    text-decoration: underline dotted
+      color-mix(in srgb, var(--c, var(--fg)) 60%, transparent);
+    text-underline-offset: 0.22em;
+    text-decoration-thickness: 1.5px;
+    border-radius: 3px;
+    transition: background-color 150ms ease-out;
+  }
+  & [data-part]:is(.lit, :hover) {
+    background: color-mix(in srgb, var(--c, var(--accent)) 14%, transparent);
+    text-decoration-style: solid;
+  }
+  & .scrub {
+    --c: var(--fg);
+    color: var(--c);
+    font-weight: 550;
+    font-variant-numeric: tabular-nums;
+    cursor: ew-resize;
+    white-space: nowrap;
+    touch-action: none;
+    user-select: none;
+    border-bottom: 1.5px dashed
+      color-mix(in srgb, var(--c) 70%, transparent);
+    border-radius: 2px;
+    padding: 0 1px;
+    outline: none;
+  }
+  & .scrub:is(:hover, .active, :focus-visible) {
+    background: color-mix(in srgb, var(--c) 12%, transparent);
+    border-bottom-style: solid;
+  }
+  & .set {
+    --c: var(--accent);
+    font: inherit;
+    color: var(--c);
+    font-weight: 550;
+    border-radius: 3px;
+    padding: 0 2px;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--c) 45%, transparent);
+    text-underline-offset: 0.18em;
+    text-decoration-thickness: 1.5px;
+  }
+  & .set:hover {
+    background: color-mix(in srgb, var(--c) 12%, transparent);
+  }
+  & :is(.set, .scrub):focus-visible {
+    outline: 2px solid var(--c);
+    outline-offset: 2px;
+  }
+}
+
 /* Spans the viewport minus the scrollbar (--sbw is measured in <head>). */
 .full-bleed {
   --full: calc(100vw - var(--sbw, 0px));

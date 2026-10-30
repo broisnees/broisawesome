@@ -1,0 +1,425 @@
+---
+title: How I rendered a million rows with no lag
+description: The data grid in Stroke, my desktop database client, scrolls a million-row table on one canvas. Each trick behind it, as a figure to play with.
+published: 2026-10-30
+---
+
+import { Figure, Scrub, SetLink, Term } from "@safis/react";
+import * as F from "~/components/demos/million-rows";
+
+[Stroke](/projects/stroke) is my desktop database client, a Rust and Svelte app on Tauri. Its data
+grid has one job that sounds simple: open a table and let me scroll it. The
+table I test with is `events`, a Postgres table of 1,000,000 rows. My notes
+from the last round of performance work say it "held a clean 60fps" there,
+with a p95 frame of 17 ms and a draw of about 6.5 ms.
+
+None of that comes from one trick. It's a stack of small ones, each fixing a
+problem the previous one exposed. This post goes through them in order, with
+the real constants from the code. Every figure is live, built with [safis](/projects/safis): drag things.
+
+## Only what's on screen
+
+A million rows of six columns is six million cells. If each cell were an
+element in the page, the browser would build, style and lay out all of them
+before showing the first frame. But a screen only ever shows a few dozen rows.
+Scroll to any row <Scrub figure="scale" k="row" /> and look how little of the
+table is visible:
+
+<Figure id="scale" spec={F.scale} label="A million-row table drawn to scale, with the visible rows magnified." />
+
+That blue sliver is the whole problem. Everything below is about drawing that
+sliver, and fetching it, without ever paying for the rest.
+
+## One canvas, no rows in the DOM
+
+Stroke's grid has no row elements at all. There is one `<canvas>`, exactly the
+size of the viewport, pinned in place with `position: sticky`. Behind it, an
+empty div is as tall as the table would be, which gives the scrollbar its
+range. When the scroll position changes, a `requestAnimationFrame` loop reads
+`scrollTop` and repaints the canvas. The loop keeps running for 200 ms after the
+last scroll event, to catch momentum scrolling.
+
+Finding the first visible row is one division. Drag the
+<Term color="blue" part="frame" figure="paint">canvas</Term> down the table
+with scrollTop <Scrub figure="paint" k="top" />, or switch the row spacing:
+
+<Figure id="paint" spec={F.paint} label="A viewport over the table; rows outside it are computed but never painted." />
+
+The painter starts at `⌊scrollTop / rowHeight⌋`, offsets by the remainder, and
+draws rows until it runs off the bottom edge. There's no overscan: it paints
+exactly the rows the frame cuts through. The row heights are the five spacing
+settings, 19, 22, 28, 36 and 44 px, with 28 as the default. A tall spacing paints
+fewer rows; <SetLink figure="paint" values={{ rowH: 19 }}>dense</SetLink> paints
+the most.
+
+## Columns get the same treatment
+
+Rows are only half the grid. `events` has ten columns, and Stroke gives each a
+default width from its declared type rather than its content: 420 px for
+`text` and `jsonb`, 380 for a `uuid`, 300 for a `timestamptz`, 210 for numbers,
+150 for a `boolean`, and 240 for anything else. Measuring the content would
+mean reading every value first. Added up, that's 2,750 px plus 68 px of row
+gutters, more than twice the 1,200 px grid in this figure. Scroll sideways
+<Scrub figure="columns" k="left" /> and pin
+<SetLink figure="columns" values={{ pin: 2 }}>id and ts</SetLink>:
+
+<Figure id="columns" spec={F.columns} label="All ten columns of the events table at their default widths, with the part a 1,200 px grid paints." />
+
+Column positions are prefix sums, computed in one pass when the columns change.
+Each frame finds the first visible column once, and the row loop stops at the
+right edge, so a column off to the side costs nothing. A pinned column is drawn
+at whichever is larger, its real position or its frozen spot at the left edge,
+so it slides in with the table and then stays put. Pinned columns are painted
+after the rest so they sit on top, and a click tests them first for the same
+reason.
+
+## Expanded rows without a per-row array
+
+One thing breaks the one-division row math: a row expanded to show its JSON is
+taller than the others. The first version kept a `Float64Array` holding the top
+of every row, rebuilt whenever an expanded panel settled. At 5 million rows
+that's 40 MB for a handful of tall rows. Now only the expanded rows are stored,
+as their indices and a running sum of their heights. Expand
+<Scrub figure="expand" k="open" /> rows:
+
+<Figure id="expand" spec={F.expand} label="Two bars: memory for a per-row array of row tops against memory for the expanded rows only." />
+
+With nothing expanded the structure is `null`, and every row top is exactly
+`index × rowHeight` again. Expanding a row in a huge table now costs as much as
+the number of expanded rows, not the number of rows.
+
+## The browser runs out of pixels
+
+The empty div has a problem of its own. Browser engines stop growing an
+element at roughly 33.5 million pixels. At 28 px a row, a million rows need
+about 28M px, which still fits. Push the table to
+<SetLink figure="cap" values={{ lg: 6.699 }}>5 million rows</SetLink> and the
+spacer saturates:
+
+<Figure id="cap" spec={F.cap} label="Bars comparing the height a table needs with the height the browser will scroll." />
+
+Everything past the limit is still in the table and can't be scrolled to. The
+fix in Stroke caps the spacer at 24,000,000 px and maps between the two
+spaces. Turn on <SetLink figure="cap" values={{ compress: true }}>compression</SetLink>
+and the spacer stops at 24M px while the rows keep their real height.
+
+The mapping is one ratio. Below the cap it's 1 and nothing changes. Above it,
+each pixel the browser scrolls stands for `(contentHeight − viewport) /
+(24M − viewport)` pixels of table. Drag the thumb, then compare
+<SetLink figure="map" values={{ rows: 1000000 }}>1M</SetLink> with
+<SetLink figure="map" values={{ rows: 5000000 }}>5M</SetLink> rows:
+
+<Figure id="map" spec={F.map} label="Two rulers, physical scroll above and virtual offset below, joined at the thumb." />
+
+At 5M rows one pixel of scrollbar skips several rows, so a mouse wheel notch
+jumps further than it should. Holding Alt makes each notch move exactly 4 rows,
+and Stroke keeps that target as a float in virtual space, so it never drifts.
+
+## Don't repaint what's still on screen
+
+A scroll of a few pixels moves almost every visible row up by those pixels and
+changes nothing else. Repainting all of it each frame is wasted work. So when a
+frame differs from the last one only by a vertical scroll, Stroke copies the
+still-valid part of the canvas up and paints only the strip that scrolled in.
+Turn the copy <SetLink figure="blit" values={{ blit: false }}>off</SetLink> and
+<SetLink figure="blit" values={{ blit: true }}>on</SetLink> and watch the
+<Term color="green">green</Term> rows, the ones painted fresh:
+
+<Figure id="blit" spec={F.blit} label="A scrolling grid; rows repainted this frame are tinted green." />
+
+The copy only runs when it's safe: the scroll distance is a whole number of
+device pixels, smaller than the body, and no row is still a loading skeleton.
+When scrolling stops, the loop does one full repaint, so any drift from the
+copies can't stay on screen.
+
+The copy goes through a scratch canvas instead of drawing the canvas onto
+itself. On Linux, Tauri runs on WebKitGTK, and Cairo copies in place there; a
+self-copy tore frames.
+
+Source and destination overlap by everything except the scroll distance. That's
+the whole point of the copy, and it's only safe if the engine snapshots the
+source first. A copy that walks the overlap in the wrong order reads rows it
+has already overwritten. Compare
+<SetLink figure="scratch" values={{ how: "up" }}>bottom first</SetLink> with
+<SetLink figure="scratch" values={{ how: "scratch" }}>a scratch canvas</SetLink>:
+
+<Figure id="scratch" spec={F.scratch} label="Last frame and this frame side by side; a bad in-place copy repeats rows above the seam." />
+
+In the app it looked exactly like that: a torn frame with rows repeated above
+the seam, and only ever while scrolling. Going through a scratch surface costs
+two flat copies instead of one, still nothing beside repainting thousands of
+glyphs. The scratch canvas grows as needed and never shrinks, so a scroll
+allocates nothing after its first frame.
+
+I checked the copy arithmetic exhaustively: across 2,280 combinations of device
+pixel ratio, header height, viewport height and scroll distance, every body
+pixel of the new frame either comes from the right source row or falls inside
+the repainted strip. I haven't measured the frame time after it yet, so I won't
+quote one.
+
+## Text is the expensive part
+
+Rectangles are cheap. Text is not. A cell holds a string, and before drawing it
+the grid has to know whether it fits the column, which means measuring it.
+Stroke caps each cell's display string at 400 characters. For a monospace font
+the fit test needs no measuring at all: characters times glyph width. Only
+strings that don't fit get measured, and then only their head.
+Make the column <Scrub figure="trunc" k="w" /> wide:
+
+<Figure id="trunc" spec={F.trunc} label="A truncated cell above, and the cell's characters as a bar below, split into shown, measured and skipped." />
+
+The head is `⌈width / glyph⌉ × 4 + 16` characters, enough to place the
+ellipsis without walking the whole string. The result goes into a cache keyed
+by font, column width and string, capped at 8,192 entries. When the same
+strings scroll back into view, they cost a map lookup.
+
+That cache was the biggest single win in the last round of work. I measured it
+on `openai_docs`, a table of 10,000 rows with pgvector embeddings, at a frame
+budget of 16.6 ms. Flip between
+<SetLink figure="budget" values={{ when: 0 }}>before</SetLink> and
+<SetLink figure="budget" values={{ when: 1 }}>after</SetLink>:
+
+<Figure id="budget" spec={F.budget} label="Bars of frame time and draw time against the 16.6 ms frame budget, before and after the truncation cache." />
+
+`measureText` went from 113 calls a frame to 31, from 16,014 characters to
+1,521, and from 3.08 ms to 0.46 ms. The draw dropped from 11.7 ms to 8.7 ms and
+the p95 frame from 22 ms to 17 ms. What's left is `fillText`: 167 calls and 6,243
+glyphs a frame, 4.8 ms of the 8.7 ms draw. That's Cairo rasterizing glyphs on
+the CPU, which no JavaScript change can speed up. The only way past it is to
+not draw the text again, which is exactly what the copy in the previous section
+is for.
+
+## Work per column, not per cell
+
+Two more costs hid in the draw loop, and neither showed up as a single slow
+call. Each cell asked whether its column was a boolean, an array, a vector or a
+geometry, and whether it should be right-aligned. Those are regex tests on the
+column's declared type: four regexes and about six throwaway strings per cell,
+about 40,000 regex runs a second while scrolling, for answers that only change
+when the columns do.
+
+The other was reactivity. The cell painter read about 20 values straight off
+Svelte's reactive graph. A `$derived` read isn't a plain property access: it
+checks the derived against every dependency's write version. Change the
+viewport from <Scrub figure="hotpath" k="rows" /> rows and see what
+<SetLink figure="hotpath" values={{ when: 1 }}>the fix</SetLink> does:
+
+<Figure id="hotpath" spec={F.hotpath} label="Bars of regex runs and reactive reads per frame, before and after moving them out of the cell loop." />
+
+A 150-cell viewport paid roughly 3,000 graph reads a frame for values that
+can't change mid-frame. Now the type tests run once per column and sit in a
+column cache, and the frame's constants are copied once into a plain object
+before the loop starts. The rows themselves are `$state.raw` rather than deep
+proxies, so no proxy trap sits on the scroll path either.
+
+## Never ask for a million rows
+
+The canvas can paint any row it has. The next problem is having it. Stroke's
+page size menu has a 1,000,000 option, and taking it literally meant one
+request for every row: about 130 MB of JSON decoded on the main thread, per
+tab, which froze the whole app.
+
+Now any load past 25,000 rows starts with a probe: 200 rows and a count. The
+grid samples 3 of those rows, measures their size as JSON, and picks a window
+size that keeps each response near 2 MB, between 100 and 10,000 rows. Drag the
+bytes per row from a
+<SetLink figure="sizing" values={{ lg: 2.079 }}>narrow table</SetLink> to one
+with an <SetLink figure="sizing" values={{ lg: 4.23 }}>embedding column</SetLink>:
+
+<Figure id="sizing" spec={F.sizing} label="Two bars: the size of fetching every row at once, against the size of one window." />
+
+Whether to window at all is two tests: is the view longer than 25,000 rows, or
+heavier than 8 MB however few rows it has? The first bar is deliberately low. A
+156k-row table on "All rows" against a remote database used to be one response
+that took tens of seconds. The second catches tables like `openai_docs`: only
+10,000 rows, but at ~17 KB each that's 170 MB. Drag the point:
+
+<Figure id="decide" spec={F.decide} label="A map of view length against bytes per row, shaded where Stroke windows the view." />
+
+The rows array becomes sparse: its length is the whole table, but only the
+fetched windows hold data. The canvas doesn't care. A row that's there gets
+drawn, and a row that isn't gets a skeleton.
+
+The rows cross from Rust to the webview as plain JSON through Tauri's `invoke`.
+Each row is an array, not an object, so column names travel once per response
+instead of once per row.
+
+## Windows that follow the scroll
+
+The grid reports its first and last visible row whenever they change. The shell turns
+that range into a queue: the visible windows first, then 4 windows ahead in the
+direction of travel, then 1 behind. At most 3 requests run at a time. Let it
+scroll, or drag the <Term part="screen" figure="windows">black box</Term>:
+
+<Figure id="windows" spec={F.windows} label="A strip of 100 windows; loaded, fetching and empty windows follow a scrolling screen." />
+
+Windows far from the screen get dropped again. Stroke keeps 80,000 rows on each
+side of the view and turns everything further away back into empty slots. That
+check waits until the range has been still for 300 ms, so a fast fling doesn't
+evict and refetch the same windows on the way past.
+
+The fetcher also watches its own speed. It keeps a rolling average of fetch
+times, and when that passes 400 ms it drops to 1 request at a time and 1 window
+ahead. Try a <SetLink figure="windows" values={{ latency: 900 }}>slow remote database</SetLink>
+and watch the purple shrink to a single window.
+
+Windowing needs two things: a primary key, so every window slices the same
+order, and a row count, so the sparse array knows how long to be. Without a
+primary key, Stroke doesn't window the table.
+
+## Deep pages by key, not OFFSET
+
+The obvious query for a window is `LIMIT 10000 OFFSET 990000`. Postgres has to
+walk every index entry before the offset just to throw it away. Move the window
+toward the end of the table:
+
+<Figure id="offset" spec={F.offset} label="An index strip; OFFSET reads everything before the window, a key lookup descends a tree to it." />
+
+Measured on the 1M-row table, `LIMIT n OFFSET 995000` took 345 ms. The same
+page by key, `WHERE id > $last ORDER BY id LIMIT n`, took
+1.5 ms. So on Postgres, when the sort is the primary key, a window starts after
+the last row of the window before it:
+<SetLink figure="offset" values={{ how: "key" }}>by key</SetLink> instead of
+<SetLink figure="offset" values={{ how: "offset" }}>by offset</SetLink>.
+
+That makes read-ahead sequential: a window can only be fetched by key once the
+window before it has arrived. The fetcher waits for that anchor rather than
+firing deep OFFSETs in parallel. If a keyset query fails for any reason, the view
+falls back to OFFSET.
+
+## Keyset paging and NULLs
+
+Paging by key has a catch: the `WHERE col > $last` predicate has no idea what
+to do with NULL. `NULL > 34` isn't true, it's unknown, so a row with a NULL in
+the sort column never comes back. Page this column
+<SetLink figure="nulls" values={{ how: "key" }}>by key</SetLink>, then
+<SetLink figure="nulls" values={{ how: "offset" }}>by offset</SetLink>:
+
+<Figure id="nulls" spec={F.nulls} label="A sorted column with NULLs, paged four rows at a time; the keyset pages skip the NULL rows." />
+
+The OFFSET path writes explicit `NULLS FIRST` or `NULLS LAST`, so it's always
+correct. Stroke only takes the keyset path when the ordering column is provably
+`NOT NULL`, checked against the catalog and cached for 10 seconds. A column it
+can't vouch for falls back to OFFSET. The windowed grid seeks by primary key,
+which can't be NULL, so it always qualifies.
+
+## Count in the background
+
+A row count looks free and isn't. With a filter, an exact `COUNT(*)` on
+`events` took 182 ms cold and 32 ms warm. The page of rows it came with took
+0.79 ms. Make the grid
+<SetLink figure="count" values={{ wait: true }}>wait for the count</SetLink>:
+
+<Figure id="count" spec={F.count} label="A timeline: the rows arrive at 0.79 ms, the count much later; a line marks when the grid draws." />
+
+So a normal page never waits. It asks for rows without a count, draws them, and
+fills the count in from a second query in the background, with a 30-second
+timeout. For an unfiltered Postgres table, Stroke reads the planner's estimate
+from `pg_class.reltuples` alongside the page. At 100,000 rows or more it uses
+the estimate as is. Below that, or when the table was never analyzed, it counts
+exactly. A count is also reused as long as the filter hasn't changed.
+
+## Background tabs
+
+Every open table tab used to keep its rows. Open three million-row tables and
+the app held three million-row tables. Now a tab switch runs a cleanup pass:
+the three most recently viewed tabs stay warm for an instant switch, and a
+colder tab loses its rows if it holds more than 5,000 of them, or more than
+8 MiB. Row count alone was the wrong unit: 500 rows of embeddings cost more
+than 5,000 rows of integers. Click through the tabs:
+
+<Figure id="tabs" spec={F.tabs} label="Six example table tabs; switching tabs evicts the rows of cold, large ones." />
+
+The size comes from a sample of eight rows, stringified and scaled up, so the
+check is cheap enough to run on every switch. Only the rows go. The columns and
+the count stay, so switching back draws the header and the pager at once and
+refetches just the body. A tab showing in a split pane is never evicted.
+
+## Cells too big to ship
+
+Some tables keep files in a column. A `jsonb` column holding an uploaded file
+can average half a megabyte a row, so `SELECT *` over a 200-row page moves
+about 100 MB for a grid that draws forty characters of each value. Stroke caps
+every cell at 256 KB: anything larger turns into a small marker with a 16 KB
+preview, and editing is blocked so a cut-down value can never be written back.
+But that cap runs in Rust, after every byte has already crossed the network.
+It protects the UI, not the fetch. Turn
+<SetLink figure="oversize" values={{ inSql: false }}>the query cap off</SetLink>:
+
+<Figure id="oversize" spec={F.oversize} label="Bars for bytes read from TOAST, sent over the network, and received by the webview for a page with one big column." />
+
+So on Postgres the cap moves into the query. A wide column is selected as
+`CASE WHEN pg_column_size(col) > 262144 THEN` a marker with the size `ELSE`
+the value. `pg_column_size` reads the stored size from the value's header
+without fetching the value. My first cut built a 16 KB preview with `left()`
+instead, and the page still took eleven seconds: `left` can't take a prefix of
+a compressed out-of-line value, so it decompressed the whole thing first, per
+row. Without the preview it takes about a second, and the full value loads when
+someone opens the cell.
+
+Which columns are wide is measured. The obvious source, `pg_stats.avg_width`,
+is wrong for exactly these columns: it measures the value as it sits in the
+row, which for a value pushed out to TOAST is the 18-byte pointer. The column
+this was written for averages 601 KB and `pg_stats` says 18. So Stroke samples
+`avg(pg_column_size(col))` over the first 500 rows, skips the sample entirely
+when the table has under 1 MiB of TOAST, and caches the answer per table.
+
+## The SQL console streams
+
+The table browser chooses its own queries. The SQL console runs whatever I
+type, including `SELECT *` on a 5,011,000-row table. On Prisma Postgres that
+read fine in 44 seconds, held 2.8 GB in the backend, and handing the result
+to the window as one IPC message closed the app.
+
+Now rows go out over a Tauri channel as they arrive. The first message closes
+at 200 rows so the grid fills at once. After that a message closes at 50,000
+rows, 4 MB of JSON, or 250 ms, whichever comes first. Change how fast rows
+arrive, then make them
+<SetLink figure="stream" values={{ lb: 4.23 }}>embedding-sized</SetLink>:
+
+<Figure id="stream" spec={F.stream} label="A timeline of messages sent to the window; colors show which limit closed each one." />
+
+Wide rows keep each message small, and a slow link still shows progress every
+quarter second.
+
+The window doesn't have to keep the rows either. In store mode they go into a
+spool file, one JSON array per line, and memory keeps only where each line
+starts:
+
+<Figure id="spool" spec={F.spool} label="Two bars: a result held as decoded values against a spool file's per-row offsets." />
+
+The window asks for the rows it scrolls to, and the backend returns that slice
+of the file as stored JSON text, never decoded and re-encoded on the way.
+Sorting a stored result has to read every row, so it waits for the stream to
+finish, then pulls only the sort column's value out of each row's raw JSON, on
+several threads. The old sort decoded whole rows and took 17 seconds on 5M rows
+in a debug build.
+
+## Giving memory back
+
+Painting fast isn't the same as staying light. Opening one 1M-row table took
+the app from an idle 45 to 48 MB up to 587 MB on the Rust side and 891 MB in
+WebKit, and closing every tab released nothing. `/proc/PID/smaps` showed why: four glibc malloc arenas of about 50 MB,
+one per worker thread, kept for the rest of the session. Switch the allocator:
+
+<Figure id="arenas" spec={F.arenas} label="Retained Rust memory after a big-table workload with glibc malloc and with mimalloc." />
+
+With mimalloc as the global allocator, the same open, scroll and seek workload
+left 27 MB of retained growth instead of 527 MB. The webview side is still the
+open question: a fresh process with no table open sits at 836 MB to 1 GB in
+WebKit, and none of it is DOM or JavaScript I can point at yet.
+
+## All of it together
+
+Here's the whole stack at once: one canvas, the compressed scroll, sparse rows,
+windows that follow the view, and skeletons for the rows still in flight.
+<SetLink figure="grid" press="Jump to row 900,000">Jump to row 900,000</SetLink>
+and watch the windows arrive under the skeletons:
+
+<Figure id="grid" spec={F.grid} label="A data grid over a million rows with a scrollbar, skeleton rows, and a strip of loaded windows." />
+
+None of this runs in a Web Worker. All the painting and all the JSON parsing
+happen on the webview's main thread, which is why each piece above is about
+doing less there, not doing it somewhere else. The remaining cost is glyphs:
+`fillText` is still most of a draw. The next step is drawing less text, not
+drawing it faster.
