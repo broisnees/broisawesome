@@ -21,12 +21,13 @@ type MdNode = {
 
 /**
  * A fence whose first line is only a filename comment (`// env.common.ts`,
- * `# .env`, `# /Dockerfile`) gets that filename as its title instead, so the
- * code block can show it in a header rather than as a line of code.
+ * `# .env`, `# /Dockerfile`, TanStack's `routes/ingest.$.ts`) gets that
+ * filename as its title instead, so the code block can show it in a header
+ * rather than as a line of code.
  */
 function remarkCodeTitles() {
   const filename =
-    /^\s*(?:\/\/|#)\s*\/?((?:[\w@-]+\/)*(?:[\w@-]*\.[\w.-]+|Dockerfile|Makefile))\s*$/;
+    /^\s*(?:\/\/|#)\s*\/?((?:[\w@.$[\]{}-]+\/)*(?:[\w@$[\]{}-]*\.[\w.$[\]{}-]+|Dockerfile|Makefile))\s*$/;
   const walk = (node: MdNode) => {
     if (node.type === "code" && node.value && !/title=/.test(node.meta ?? "")) {
       const [first, ...rest] = node.value.split("\n");
