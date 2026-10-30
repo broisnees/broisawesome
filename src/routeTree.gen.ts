@@ -23,6 +23,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as BlogsSlugRouteImport } from './routes/blogs.$slug'
+import { Route as IngestSplatRouteImport } from './routes/ingest.$'
 import { Route as LCodeRouteImport } from './routes/l.$code'
 import { Route as PhotosIdRouteImport } from './routes/photos.$id'
 import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
@@ -101,6 +102,11 @@ const BlogsSlugRoute = BlogsSlugRouteImport.update({
   path: '/blogs/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IngestSplatRoute = IngestSplatRouteImport.update({
+  id: '/ingest/$',
+  path: '/ingest/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LCodeRoute = LCodeRouteImport.update({
   id: '/l/$code',
   path: '/l/$code',
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/blogs/$slug': typeof BlogsSlugRoute
+  '/ingest/$': typeof IngestSplatRoute
   '/l/$code': typeof LCodeRoute
   '/photos/$id': typeof PhotosIdRoute
   '/projects/$slug': typeof ProjectsSlugRoute
@@ -175,6 +182,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/blogs/$slug': typeof BlogsSlugRoute
+  '/ingest/$': typeof IngestSplatRoute
   '/l/$code': typeof LCodeRoute
   '/photos/$id': typeof PhotosIdRoute
   '/projects/$slug': typeof ProjectsSlugRoute
@@ -199,6 +207,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/blogs/$slug': typeof BlogsSlugRoute
+  '/ingest/$': typeof IngestSplatRoute
   '/l/$code': typeof LCodeRoute
   '/photos/$id': typeof PhotosIdRoute
   '/projects/$slug': typeof ProjectsSlugRoute
@@ -224,6 +233,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/blog/$slug'
     | '/blogs/$slug'
+    | '/ingest/$'
     | '/l/$code'
     | '/photos/$id'
     | '/projects/$slug'
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/blog/$slug'
     | '/blogs/$slug'
+    | '/ingest/$'
     | '/l/$code'
     | '/photos/$id'
     | '/projects/$slug'
@@ -270,6 +281,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/blog/$slug'
     | '/blogs/$slug'
+    | '/ingest/$'
     | '/l/$code'
     | '/photos/$id'
     | '/projects/$slug'
@@ -294,6 +306,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   BlogSlugRoute: typeof BlogSlugRoute
   BlogsSlugRoute: typeof BlogsSlugRoute
+  IngestSplatRoute: typeof IngestSplatRoute
   LCodeRoute: typeof LCodeRoute
   PhotosIdRoute: typeof PhotosIdRoute
   ProjectsSlugRoute: typeof ProjectsSlugRoute
@@ -404,6 +417,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ingest/$': {
+      id: '/ingest/$'
+      path: '/ingest/$'
+      fullPath: '/ingest/$'
+      preLoaderRoute: typeof IngestSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/l/$code': {
       id: '/l/$code'
       path: '/l/$code'
@@ -470,6 +490,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   BlogSlugRoute: BlogSlugRoute,
   BlogsSlugRoute: BlogsSlugRoute,
+  IngestSplatRoute: IngestSplatRoute,
   LCodeRoute: LCodeRoute,
   PhotosIdRoute: PhotosIdRoute,
   ProjectsSlugRoute: ProjectsSlugRoute,

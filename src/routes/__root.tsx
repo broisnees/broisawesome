@@ -5,6 +5,7 @@ import {
   Outlet,
   Scripts,
 } from "@tanstack/react-router";
+import { PostHogProvider } from "@posthog/react";
 import type { ReactNode } from "react";
 import { GitHubMark } from "~/components/brand-icons";
 import { Icon } from "~/components/icon";
@@ -19,6 +20,26 @@ import appCss from "~/styles.css?url";
 import interLatin from "@fontsource-variable/inter/files/inter-latin-opsz-normal.woff2?url";
 
 const BG = { light: "#ffffff", dark: "#000000" };
+
+const POSTHOG_TOKEN = import.meta.env.VITE_POSTHOG_PROJECT_TOKEN;
+
+/** PostHog in the browser only (it inits in an effect); off when no token is set. */
+function Analytics({ children }: { children: ReactNode }) {
+  if (!POSTHOG_TOKEN) return children;
+  return (
+    <PostHogProvider
+      apiKey={POSTHOG_TOKEN}
+      options={{
+        // Sent through src/routes/ingest.$.ts; ui_host keeps toolbar links on PostHog.
+        api_host: "/ingest",
+        ui_host: "https://us.posthog.com",
+        defaults: "2026-08-30",
+      }}
+    >
+      {children}
+    </PostHogProvider>
+  );
+}
 
 /** Browser chrome color: pinned for an explicit choice, per scheme for system. */
 function themeColor(theme: Theme) {
@@ -123,63 +144,65 @@ function RootDocument({ children }: { children: ReactNode }) {
         className="min-h-dvh font-sans text-base/[1.6] antialiased"
         suppressHydrationWarning
       >
-        {/* 38rem of text at 17px keeps lines near 70 characters. */}
-        <div className="mx-auto max-w-[38rem] px-5 pt-6 pb-10 sm:px-6 sm:pt-8">
-          <a
-            href="#main"
-            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-md focus:bg-bg focus:px-3 focus:py-2"
-          >
-            Skip to content
-          </a>
-          <header className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            <Link
-              to="/"
-              className="mr-auto font-[575] tracking-[-0.02em] text-fg"
+        <Analytics>
+          {/* 38rem of text at 17px keeps lines near 70 characters. */}
+          <div className="mx-auto max-w-[38rem] px-5 pt-6 pb-10 sm:px-6 sm:pt-8">
+            <a
+              href="#main"
+              className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-md focus:bg-bg focus:px-3 focus:py-2"
             >
-              Nischal Dahal
-            </Link>
-            {/* Link padding hangs outside the column so the words sit on its edges. */}
-            <nav
-              aria-label="Main"
-              className="order-last -mx-2 flex w-full text-sm text-muted sm:order-none sm:w-auto"
-            >
-              {NAV.map((item) => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className="relative rounded-md px-2 py-1 transition-[color] duration-150 ease-out hover:text-fg"
-                  activeProps={{
-                    className:
-                      "text-fg after:absolute after:-bottom-0.5 after:left-1/2 after:size-1 after:-translate-x-1/2 after:rounded-full after:bg-accent",
-                  }}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-            <div className="flex items-center gap-1.5">
-              <a
-                href="https://github.com/broisnees"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="GitHub"
-                className="grid size-8 place-items-center rounded-full text-muted transition-[color,background-color,scale] duration-150 ease-out hover:bg-surface-hover hover:text-fg active:scale-[0.96]"
+              Skip to content
+            </a>
+            <header className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <Link
+                to="/"
+                className="mr-auto font-[575] tracking-[-0.02em] text-fg"
               >
-                <Icon icon={GitHubMark} size={17} />
-              </a>
-              <SayHi />
-            </div>
-          </header>
-          <main id="main" className="mt-16 sm:mt-24">
-            {children}
-          </main>
-          <footer className="mt-28 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
-            <span className={`text-muted ${metaClass}`}>
-              Kathmandu <KathmanduTime />
-            </span>
-            <ThemeSwitch theme={theme} />
-          </footer>
-        </div>
+                Nischal Dahal
+              </Link>
+              {/* Link padding hangs outside the column so the words sit on its edges. */}
+              <nav
+                aria-label="Main"
+                className="order-last -mx-2 flex w-full text-sm text-muted sm:order-none sm:w-auto"
+              >
+                {NAV.map((item) => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className="relative rounded-md px-2 py-1 transition-[color] duration-150 ease-out hover:text-fg"
+                    activeProps={{
+                      className:
+                        "text-fg after:absolute after:-bottom-0.5 after:left-1/2 after:size-1 after:-translate-x-1/2 after:rounded-full after:bg-accent",
+                    }}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+              <div className="flex items-center gap-1.5">
+                <a
+                  href="https://github.com/broisnees"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="GitHub"
+                  className="grid size-8 place-items-center rounded-full text-muted transition-[color,background-color,scale] duration-150 ease-out hover:bg-surface-hover hover:text-fg active:scale-[0.96]"
+                >
+                  <Icon icon={GitHubMark} size={17} />
+                </a>
+                <SayHi />
+              </div>
+            </header>
+            <main id="main" className="mt-16 sm:mt-24">
+              {children}
+            </main>
+            <footer className="mt-28 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
+              <span className={`text-muted ${metaClass}`}>
+                Kathmandu <KathmanduTime />
+              </span>
+              <ThemeSwitch theme={theme} />
+            </footer>
+          </div>
+        </Analytics>
         <Scripts />
       </body>
     </html>
