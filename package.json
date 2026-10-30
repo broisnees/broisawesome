@@ -20,9 +20,13 @@
     "@hugeicons/react": "^1.1.10",
     "@mdx-js/react": "^3.1.1",
     "@mdx-js/rollup": "^3.1.1",
+    "@posthog/react": "^1.11.3",
+    "@safis/core": "0.4.0",
+    "@safis/react": "0.4.0",
     "@tanstack/react-router": "1.170.46",
     "@tanstack/react-start": "1.169.4",
     "clsx": "^2.1.1",
+    "posthog-js": "^1.442.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "rehype-pretty-code": "^0.14.1",
@@ -54,5 +58,8 @@
     "typescript-eslint": "^8.48.1",
     "vite": "^8",
     "wrangler": "^4.155.0"
+  },
+  "patchedDependencies": {
+    "@safis/core@0.4.0": "patches/@safis%2Fcore@0.4.0.patch"
   }
 }
