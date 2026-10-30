@@ -1,0 +1,110 @@
+---
+title: Serving every post as Markdown for AI agents
+description: How every post on my site is also plain Markdown at its own URL, with buttons to copy it or hand it to Claude or ChatGPT.
+published: 2026-10-30
+---
+
+When someone pastes a link to one of my posts into Claude or ChatGPT and asks
+about it, the agent fetches a page built for a browser: navigation, scripts, a
+theme switch, and somewhere in there the post.
+
+So every post on this site is also plain Markdown. Under the byline of each
+post sit four buttons: **Copy page**, **Open in Claude**, **Open in ChatGPT**
+and **Markdown**. The post itself reads as normal below them.
+
+## The Markdown
+
+Posts are MDX files. The Markdown version is the same file with the MDX parts
+taken out and a short header put on top:
+
+```ts
+// src/server/posts.server.ts
+
+export function getPostMarkdown(slug: string) {
+  const entry = visible.find((e) => e.post.slug === slug);
+  const source = sources[`../content/${slug}/route.mdx`];
+  if (!entry || source === undefined) return undefined;
+  const body = source
+    .replace(/^---\n[\s\S]*?\n---\n/, "")
+    .replace(/^(import|export) .*$/gm, "")
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  const { title, description, date } = entry.post;
+  return [
+    `# ${title}`,
+    description && `> ${description}`,
+    `Source: ${SITE_URL}/writing/${slug}${date ? ` (${date})` : ""}`,
+    body,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+```
+
+Frontmatter goes, along with `import` and `export` lines and JSX comments. The title,
+the description as a quote, and a `Source:` line with the canonical URL go on
+top, so a pasted copy still says where it came from.
+
+The raw text comes from Vite's `import.meta.glob` with `?raw`, at build time.
+There's no file system on a Worker, and none is needed.
+
+## A URL for it
+
+`/writing/<slug>.md` serves that text as `text/markdown`:
+
+```ts
+// src/routes/writing.{$slug}[.]md.ts
+
+export const Route = createFileRoute("/writing/{$slug}.md")({
+  server: {
+    handlers: {
+      GET: ({ params }) => {
+        const markdown = getPostMarkdown(params.slug);
+        if (markdown === undefined) {
+          return new Response("Not found", { status: 404 });
+        }
+        return new Response(markdown, {
+          headers: {
+            "Content-Type": "text/markdown; charset=utf-8",
+            "Cache-Control": "public, max-age=300",
+          },
+        });
+      },
+    },
+  },
+});
+```
+
+The `{$slug}.md` segment is TanStack Router's syntax for a parameter with a
+fixed suffix. The square brackets in the file name escape the dot.
+
+It works from a terminal too:
+
+```sh
+curl https://nischal-dahal.com.np/writing/strongly-typed-env.md
+```
+
+## Handing it to an agent
+
+**Copy page** puts the Markdown on the clipboard. The two "Open in" buttons
+don't paste the post into the chat. They ask the agent to fetch the `.md` URL:
+
+```ts
+const prompt = encodeURIComponent(
+  `Read ${mdUrl} and be ready to answer questions about it.`,
+);
+
+// https://claude.ai/new?q=${prompt}
+// https://chatgpt.com/?q=${prompt}
+```
+
+The URL stays short, and the agent reads the clean version instead of
+the HTML.
+
+## llms.txt
+
+For agents that start at the root, `/llms.txt` lists the site: pages, every
+published post linked to its `.md` URL, every project with a one-line
+description, and how to reach me. It's built from the same data as the pages,
+so a new post shows up there without me touching it.
