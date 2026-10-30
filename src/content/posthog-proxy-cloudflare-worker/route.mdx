@@ -1,0 +1,133 @@
+---
+title: Proxying PostHog through a Cloudflare Worker
+description: How I send PostHog events through my own domain with one TanStack Start server route, so ad blockers stop dropping them.
+published: 2026-10-30
+---
+
+I added PostHog to this site and right away hit the usual problem: ad blockers
+block `us.i.posthog.com`, and plenty of the developers who read this run one. The fix is to send everything through my own domain. The site
+already runs on a Cloudflare Worker, so the proxy is one server route.
+
+## The client
+
+`posthog-js` and `@posthog/react` do the browser side. I wrap the app in the
+root layout and point `api_host` at a path on my own domain:
+
+```tsx
+// src/routes/__root.tsx
+
+const POSTHOG_TOKEN = import.meta.env.VITE_POSTHOG_PROJECT_TOKEN;
+
+function Analytics({ children }: { children: ReactNode }) {
+  if (!POSTHOG_TOKEN) return children;
+  return (
+    <PostHogProvider
+      apiKey={POSTHOG_TOKEN}
+      options={{
+        api_host: "/ingest",
+        ui_host: "https://us.posthog.com",
+        defaults: "2026-08-30",
+      }}
+    >
+      {children}
+    </PostHogProvider>
+  );
+}
+```
+
+`PostHogProvider` calls `posthog.init` in an effect, so nothing runs during
+server rendering. Without a token the site builds and runs with no analytics,
+which keeps local clones and forks clean.
+
+`ui_host` matters once `api_host` is a relative path. PostHog uses it for links
+back into its own app (the toolbar, for example). Without it those links would
+point at my domain.
+
+## The route
+
+PostHog serves two kinds of traffic. Events, flags and config go to
+`us.i.posthog.com`. The scripts it lazy loads (surveys, the session recorder,
+web vitals) and the per-project `config.js` come from `us-assets.i.posthog.com`,
+under `/static/` and `/array/`. The route picks the host from the path:
+
+```ts
+// src/routes/ingest.$.ts
+
+const API = "https://us.i.posthog.com";
+const ASSETS = "https://us-assets.i.posthog.com";
+
+export const Route = createFileRoute("/ingest/$")({
+  server: {
+    handlers: {
+      ANY: async ({ request }) => {
+        const { pathname, search } = new URL(request.url);
+        const path = pathname.replace(/^\/ingest/, "");
+        const origin = /^\/(static|array)\//.test(path) ? ASSETS : API;
+
+        const headers = new Headers(request.headers);
+        headers.delete("cookie");
+        headers.delete("host");
+        const ip = request.headers.get("cf-connecting-ip");
+        if (ip) headers.set("x-forwarded-for", ip);
+
+        const hasBody = !["GET", "HEAD"].includes(request.method);
+        const res = await fetch(origin + path + search, {
+          method: request.method,
+          headers,
+          body: hasBody ? request.body : undefined,
+          redirect: "manual",
+        });
+        return new Response(res.body, res);
+      },
+    },
+  },
+});
+```
+
+A few lines in there earn their place:
+
+- **`ANY`** handles every method in one function. PostHog uses GET for scripts
+  and POST for events and flags.
+- **`cookie` goes.** My site's cookies (the theme choice, for one) have no
+  business at PostHog.
+- **`x-forwarded-for`** carries the visitor's IP from `cf-connecting-ip`.
+  Without it, PostHog sees the Worker's address and every visitor lands in the
+  same city.
+- **`new Response(res.body, res)`** copies the response into one with mutable
+  headers, so the framework can still add its own.
+
+## Checking it
+
+Two requests through the dev server confirm both hosts work:
+
+```sh
+curl -s -o /dev/null -w '%{http_code}\n' \
+  "http://localhost:5174/ingest/array/$TOKEN/config.js"
+
+curl -s -X POST "http://localhost:5174/ingest/flags/?v=2" \
+  -H 'content-type: application/json' \
+  -d "{\"token\":\"$TOKEN\",\"distinct_id\":\"proxy-check\"}"
+```
+
+The first returns `200` with `application/javascript`. The second returns the
+flags JSON. In the browser, every PostHog request now goes to `/ingest/...` on
+my own origin and none to `posthog.com`.
+
+## Two things that cost me time
+
+**Headless browsers don't send events.** I checked the setup with Playwright and
+saw the config and flags requests but no events. With PostHog's debug mode on
+(`?__posthog_debug=true`), the console said why:
+
+```txt
+Event "$pageview" was not captured because the user agent looks like a bot.
+```
+
+That held even after I set a normal Chrome user agent string. PostHog's bot
+filter does its job. Check events in a real browser.
+
+**`VITE_` variables are build time.** The token is read by Vite when it builds
+the client bundle and ends up inline in the JavaScript. Putting it in Worker
+secrets does nothing for the browser, because secrets only exist at request
+time on the server. It has to be in `.env` (or the CI environment) wherever
+`vite build` runs. That's fine: the project token is public by design.
