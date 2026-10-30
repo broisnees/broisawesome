@@ -86,8 +86,10 @@
       var(--bg);
   }
 
+  /* The accent over black mixes to brown, so dark mode selects in neutral. */
   ::selection {
-    background: color-mix(in oklab, var(--accent) 32%, transparent);
+    background: light-dark(rgb(217 119 87 / 0.24), rgb(250 250 250 / 0.2));
+    color: var(--fg);
   }
 
   ::placeholder {
