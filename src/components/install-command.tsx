@@ -1,3 +1,4 @@
+import { track } from "~/lib/analytics";
 import { CopyButton } from "./copy-button";
 
 /** A one-line install command with a prompt and a copy button. */
@@ -13,7 +14,11 @@ export function InstallCommand({ command }: { command: string }) {
       <code className="min-w-0 flex-1 overflow-x-auto font-mono text-[0.8125rem] whitespace-nowrap text-fg [scrollbar-width:none]">
         {command}
       </code>
-      <CopyButton getText={() => command} label="Copy install command" />
+      <CopyButton
+        getText={() => command}
+        label="Copy install command"
+        onCopy={() => track("install_command_copied", { command })}
+      />
     </div>
   );
 }

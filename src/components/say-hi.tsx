@@ -4,6 +4,7 @@ import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 import { hiSchema } from "~/lib/hi";
 import { sayHi } from "~/lib/hi.functions";
 import { SITE_URL } from "~/lib/seo";
+import { track } from "~/lib/analytics";
 import { cn } from "~/lib/utils";
 import { Icon } from "./icon";
 
@@ -50,6 +51,7 @@ export function SayHi() {
     setNow(new Date());
     setMounted(true);
     setOpen(true);
+    track("say_hi_opened");
   }
 
   function hide(refocus = false) {
@@ -95,6 +97,8 @@ export function SayHi() {
     try {
       const result = await sayHi({ data: parsed.data });
       if (result.ok) {
+        // Never the message or contact itself, only that it was sent.
+        track("say_hi_sent", { with_contact: Boolean(parsed.data.contact) });
         setDraft("");
         setState({ kind: "sent", contact: parsed.data.contact || undefined });
       } else {
@@ -280,6 +284,7 @@ function CurlButton() {
       aria-label={copied ? "Copied" : "Copy the curl command"}
       onClick={async () => {
         await navigator.clipboard.writeText(CURL);
+        track("say_hi_curl_copied");
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }}

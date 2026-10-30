@@ -7,14 +7,17 @@ import { Icon } from "./icon";
 export function CopyButton({
   getText,
   label = "Copy code",
+  onCopy,
 }: {
   getText: () => string;
   label?: string;
+  onCopy?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
     await navigator.clipboard.writeText(getText());
+    onCopy?.();
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
@@ -51,15 +54,18 @@ export function CopyTextButton({
   text,
   label,
   className,
+  onCopy,
 }: {
   text: string;
   label: string;
   className?: string;
+  onCopy?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
     await navigator.clipboard.writeText(text);
+    onCopy?.();
     setCopied(true);
     setTimeout(() => setCopied(false), 1800);
   }
