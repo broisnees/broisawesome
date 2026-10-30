@@ -81,17 +81,6 @@ export const Route = createRootRoute({
         children:
           "document.documentElement.style.setProperty('--sbw',innerWidth-document.documentElement.clientWidth+'px')",
       },
-      {
-        src: "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6430477215422762",
-        async: true,
-        crossOrigin: "anonymous",
-      },
-      {
-        children: `window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', 'G-L2HXER3J9C');`,
-      },
     ],
   }),
   shellComponent: RootDocument,
