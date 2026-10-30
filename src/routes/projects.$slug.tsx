@@ -127,9 +127,7 @@ function ProjectPage() {
   const isGitHub = project.href.includes("github.com");
 
   return (
-    // data-enhanced tells the safis runtime (MDX figures) this article is
-    // already done; otherwise it adds heading anchors before React hydrates.
-    <article data-enhanced="1">
+    <article>
       <ProjectIcon
         item={project}
         size={64}

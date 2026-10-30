@@ -100,9 +100,7 @@ function PostPage() {
   const { post, markdown } = Route.useLoaderData();
 
   return (
-    // data-enhanced tells the safis runtime (MDX figures) this article is
-    // already done; otherwise it adds heading anchors before React hydrates.
-    <article data-enhanced="1">
+    <article>
       {/* Left-aligned like the post body. */}
       <header className="mb-10">
         <h1 className="display text-[2rem]/[1.15] text-balance sm:text-[2.25rem]/[1.12]">

@@ -12,8 +12,8 @@
         "@mdx-js/react": "^3.1.1",
         "@mdx-js/rollup": "^3.1.1",
         "@posthog/react": "^1.11.3",
-        "@safis/core": "0.4.0",
-        "@safis/react": "0.4.0",
+        "@safis/core": "0.4.1",
+        "@safis/react": "0.4.1",
         "@tanstack/react-router": "1.170.46",
         "@tanstack/react-start": "1.169.4",
         "clsx": "^2.1.1",
@@ -51,9 +51,6 @@
         "wrangler": "^4.155.0",
       },
     },
-  },
-  "patchedDependencies": {
-    "@safis/core@0.4.0": "patches/@safis%2Fcore@0.4.0.patch",
   },
   "packages": {
     "@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],
@@ -374,9 +371,9 @@
 
     "@rollup/rollup-win32-x64-msvc": ["@rollup/rollup-win32-x64-msvc@4.53.3", "", { "os": "win32", "cpu": "x64" }, "sha512-UhTd8u31dXadv0MopwGgNOBpUVROFKWVQgAg5N1ESyCz8AuBcMqm4AuTjrwgQKGDfoFuz02EuMRHQIw/frmYKQ=="],
 
-    "@safis/core": ["@safis/core@0.4.0", "", {}, "sha512-zNnLN3Fc09M1P1cek+mV9X/lqpyoK9poKLjAOQklxCEKZht7D7uYX7IVC5PULU5HAS0MbYZavAkVU2pSPzH+Hg=="],
+    "@safis/core": ["@safis/core@0.4.1", "", {}, "sha512-mOMufMz2AkG/u4uVyFrwG+ertpyfVeTwefX0DcQTI8/tHKzBNOs8BGMaB1vkr0Fm+7ae2jfWS2QlWh3foRDb2g=="],
 
-    "@safis/react": ["@safis/react@0.4.0", "", { "dependencies": { "@safis/core": "^0.4.0" }, "peerDependencies": { "react": ">=18" } }, "sha512-i7q8DfhyIMlCTq5R0l7TsHptyQu/8S3lvBrzHv7Qh7yXh9kVKLNNouqd8/d4bveAmjloWXRiqnRuAZJ9iLYFlw=="],
+    "@safis/react": ["@safis/react@0.4.1", "", { "dependencies": { "@safis/core": "^0.4.1" }, "peerDependencies": { "react": ">=18" } }, "sha512-/bZMfuuU4XmZysYLrk2mjGO7OZefINR+Tj3V4N/v9fQaxEBh6ILGTor9YaVC70FTS6QK6WIBP4hisCtQ79tKbQ=="],
 
     "@shikijs/core": ["@shikijs/core@3.19.0", "", { "dependencies": { "@shikijs/types": "3.19.0", "@shikijs/vscode-textmate": "^10.0.2", "@types/hast": "^3.0.4", "hast-util-to-html": "^9.0.5" } }, "sha512-L7SrRibU7ZoYi1/TrZsJOFAnnHyLTE1SwHG1yNWjZIVCqjOEmCSuK2ZO9thnRbJG6TOkPp+Z963JmpCNw5nzvA=="],
 
